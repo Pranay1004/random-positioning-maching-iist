@@ -8,154 +8,212 @@ A web-based simulator for Random Positioning Machines (RPM) used in microgravity
 
 ---
 
-## 📚 Quick Navigation
+## Quick Navigation
 
 **New Users:**
-1. See [Folder Structure](#-folder-structure) below
+1. See Folder Structure below
 2. Read [docs/README.txt](docs/README.txt) for complete guide
-3. See **Installation** section
+3. See Installation section
 
 **Developers:**
 1. Check [src/](src/) for source code
 2. Review [docs/Formulas.txt](docs/Formulas.txt) for physics
-3. See [Architecture](docs/README.txt#3-architecture) section
 
 **Researchers:**
 1. See [docs/REFERENCES.txt](docs/REFERENCES.txt) for citations
 2. Read [docs/SAMPLES_METRIC_EXPLAINED.txt](docs/SAMPLES_METRIC_EXPLAINED.txt)
-3. Check [docs/CAD_REFERENCE.txt](docs/CAD_REFERENCE.txt)
 
 ---
 
+## Folder Structure
 
---
-heck [docs/CAD_REFERENCE.txt](docs/CAD_REFERENCE.txt)
-ETRIC_EXPLAINED.txt)
-y research. Real-timl_y research. Real-timl_y reseaME.md (YOU ARE HERE)
-├── 📄 README.txt (Comprehensive documentation)
-├── 📄 LICENSE (MIT License)
-├── 📄 DISCLAIMER.md (Legal information)
+```
+Digital_Twin/
+├── README.md              <- You are here
+├── README.txt             <- Comprehensive documentation
+├── LICENSE                <- MIT License
+├── DISCLAIMER.md          <- Legal information
+├── requirements.txt       <- Python dependencies
 │
-├── 📂 docs/ ← DOCUMEN├── 📂 docs/ ← DOCUMEN├── 📂 docs/ ← DOde├── 📂 do details)
-│   ├── Formulas.txt (All physics equations)
-│   ├── SAMPLES_METRIC_EXPLAINED.txt (Understandi│   ├── SAMPLES_METRIC_EXPLAINED.txt (Understandinica�│   ├── SAMPLES_METRIC��─ REFERENCES.tx│   ├── SAMPLES_METRIC_EXPLA�│   ├── SAMPLES_METRIC_EXPLAINED.txt (Understandi─ │   ├── SAMPLES_METRIC_EXPLAINED.txt (Understandi│plication entry poin│   ├── SAMPLES_METRIC_EXPLAINED.txt (Understandi│  )
-│   ├── SAMPLES_METRIC_EXPLAINED.txt (Understandi│   ├── SAMP� │   ├── SAMPLES_METRIC_EXPLAINED.txt (Understand� server.py (FastAPI server)
-│       └── static/
-│      │      │      x.�│      │      │      x.�│      │      │      x.�│              �├── css/ (Styling)
-│           └── a│           └── a│       �│           └── a│           └─── test_physics.py (Physics validation tests)
-│   ├── test_websocket.py (Server tests)
-│   └── fixtures/ (Te│   └── fixtures/ (Te│   └── fixATION FOLDER
-│   ├── settings.yaml (Application settings)
-│   ├── motor_config.json (Motor parameters)
-│   └── frame_dimensions.json (RPM geometry)
+├── docs/                  <- DOCUMENTATION
+│   ├── README.txt         <- Complete user guide
+│   ├── Formulas.txt       <- All physics equations
+│   ├── SAMPLES_METRIC_EXPLAINED.txt
+│   ├── CAD_REFERENCE.txt
+│   ├── REFERENCES.txt
+│   └── FUTURE_FEATURES.txt
 │
-├── 📂 database/ ← DATA STORAGE FOLDER
-│   ├── measurements.db (Simulation results)
-│   └── logs/ (Simulation logs)
+├── src/                   <- SOURCE CODE
+│   ├── main.py            <- Application entry point
+│   ├── simulation/        <- Physics engine
+│   ├── webapp/            <- Web frontend & server
+│   ├── hardware_interface/
+│   ├── data_pipeline/
+│   └── visualization/
 │
-├── 📂 firmware/ ← HARDWARE CONTROL FOLDER
-│   ├── motor_driver.py (NEMA mot│   ├── motor_driver.py (NEMA mot│   ├── motor_driver.py (NEMA mot│   ├── motor_driver.py (NEMA mot│   ├── motor_driver.py (NEMA mre│   ├── mo��
-├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├─�├Installation script)
-�└── .gitignore (Git configuration)
+├── tests/                 <- TESTING
+│   └── test_core.py
+│
+├── config/                <- CONFIGURATION
+│   └── main_config.yaml
+│
+├── firmware/              <- HARDWARE CONTROL
+│   └── arduino/
+│
+├── Figure/                <- REFERENCE IMAGES
+│
+└── database/              <- DATA STORAGE
 ```
 
 ---
 
-## 🎯 Purpose of Each Folder
+## Purpose of Each Folder
 
 | Folder | Purpose | Who Uses It |
-|--------|---------|------------|
-| **docs/** | Documentation, guides| **docs/** | Documentation, guides| **docs/** | Documentation, guides| **docs/** | Docus/** | Unit & integration tests | QA, Developers |
-| **config/** | Settings & parameters (YAML, JSON) | DevOps, Configuration |
-| **database/** | Simulation results,| **database/** | Simulation results,| **databa c| **database/** | Simulation results,| **database/*Re| **database/** | Simulation results,|
-
----
----
-database/** | Simulation results,| **database/* with Three.js
-- **Paper-accurate physics** based on Yotov et al. research
-- **Live microgravity metrics** (taSMG, time-averaged gravity)
-- **Interactive controls** for motor speeds and frame dimensions
-- **WebSocket streaming** for low-latency updates (50 Hz physics, 20 Hz display)
-- **Responsive dark-theme UI** with professional dashboard
+|--------|---------|-------------|
+| docs/ | Documentation, guides, physics equations | Everyone |
+| src/ | Python source code | Developers |
+| tests/ | Unit and integration tests | QA, Developers |
+| config/ | Settings and parameters | DevOps |
+| database/ | Simulation results, logs | Data analysts |
+| firmware/ | Motor control code | Hardware engineers |
+| Figure/ | Reference images and diagrams | Everyone |
 
 ---
 
-## 📦 Installation
+## Features
+
+- Real-time 3D visualization with Three.js
+- Paper-accurate physics based on Yotov et al. research
+- Live microgravity metrics (taSMG, time-averaged gravity)
+- Interactive controls for motor speeds and frame dimensions
+- WebSocket streaming for low-latency updates (50 Hz physics, 20 Hz display)
+- Responsive dark-theme UI with professional dashboard
+
+---
+
+## Installation
 
 ### Prerequisites
 - Python 3.10+
-- pip (Python package manager- - M- pip (Python package managerref- pip (Python package manager- - t
-- pip (Python package manager- -t
-- pip (Python package manager- -t
-- pip (Python package managerref- pip (Python package manager- - t
- | Simulation results,| **database/*Re| **database/** | Simulation resu
+- pip (Python package manager)
+- Modern web browser (Chrome, Firefox, Safari, Edge)
+
+### Quick Start
+
+```bash
+# 1. Navigate to project
+cd Digital_Twin
+
+# 2. Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # macOS/Linux
+
+# 3. Install dependencies
 pip install -r requirements.txt
-pip install -r requirements-visualization.txt
-pip install -r requirements-visualization.txt
-base/** | Simulation resu
-(Python package manager- - t
-README.txt](docs/README.txt) for detailed setup and troubleshooting.
+
+# 4. Run server
+python src/main.py
+
+# 5. Open browser at http://localhost:8080
+```
+
+See [docs/README.txt](docs/README.txt) for detailed setup.
 
 ---
 
-## ##��##oc## ##��##oc## ##��##oc## ##��##oc## ##��##oc## ##��##oc## ##---------------|
+## Documentation
+
+| Document | What You'll Learn |
+|----------|-------------------|
 | [docs/README.txt](docs/README.txt) | Complete user guide, physics theory, API reference |
-| [docs/Formulas| [docs/Formulas| [docs/Formulas| [docs/Formulas| [docs/Formulaimulator |
-| [docs/SAMPLES_METRIC_EXPLAINED.txt](docs/SAMPLES_METRIC_EXPLAINED.txt)| [docs/SAMPLES_METRIC_EXPLAINED.txt](docs/SAMPLES_METRICREFERENCE.txt](docs/CAD_REFERENCE.txt) | Mechanical design and | [docs/SAMPLES_METRIC_EXPLAINED.txt](docs/SAMPLES_METRIC_EXPLAINED.txt)| [docs/SAMPLES_METRIC_EXPLur| [docs/SAMPLES_METRIFEATURES.txt]| [docs/SAMPLES_METRIC_EXPLAINEDnned features and roadmap |
-| [DISCLAIMER.md](DISCLAIMER.md) | Legal | [DISCLAIMER.md](DISCLAIMER.md) | Legal | [DISCLAIMER.md]What is SAMPLE| [DISCLAIMER.md](DISCLAIMER.mhe dashboard shows:
-- **Count of measurements** collected during rotation
-- **Convergence indicator** - higher samples = more accurate results
-- **Qu- **Qu- **Qu- **Qu- **Qu- **Qu- **Qu- **Qu- **Qu- **Qu- **Qu- **Qu-l-world analogy:** Like averaging 100 photos to get a clear image.
+| [docs/Formulas.txt](docs/Formulas.txt) | All mathematical equations |
+| [docs/SAMPLES_METRIC_EXPLAINED.txt](docs/SAMPLES_METRIC_EXPLAINED.txt) | What "Samples" means |
+| [docs/CAD_REFERENCE.txt](docs/CAD_REFERENCE.txt) | Mechanical design |
+| [docs/REFERENCES.txt](docs/REFERENCES.txt) | Research citations |
+| [DISCLAIMER.md](DISCLAIMER.md) | Legal info, licensing |
+
+---
+
+## What is SAMPLE?
+
+The Samples metric in the dashboard shows:
+- Count of measurements collected during rotation
+- Convergence indicator - higher samples = more accurate results
+- Quality metric - when physics has settled to stable values
+
+**Real-world analogy:** Like averaging 100 photos to get a clear image.
 
 ```
-Low Samples (<50):    PhLow Samples (<50):    PhLow Samples (<50):    PhLum Samples (50-200): Good stability, typical for analysis  
+Low Samples (<50):     Physics still calculating, results preliminary
+Medium Samples (50-200): Good stability, typical for analysis  
 High Samples (200+):   Excellent stability, safe for publication
 ```
 
-For complete details, see: [docs/SAMPLES_METRIC_EXPLAINED.txt](docs/SAMPLES_METRIC_EXPLAINED.txt)
+For details: [docs/SAMPLES_METRIC_EXPLAINED.txt](docs/SAMPLES_METRIC_EXPLAINED.txt)
 
 ---
 
-## ⚖️ License & Legal
+## License and Legal
 
 - **License:** MIT License (see [LICENSE](LICENSE) file)
 - **Copyright:** Department of Aerospace Engineering, IIST
 - **AI-Generated Code:** ~80% AI-assisted, ~20% human-directed
 - **Warranty:** NONE - Use at your own risk
 
-**See:** [DISCLAIMER.md](DISCLAIMER**See:** [DISCLAIMER.md](DISCLAIMER**See:** [DISCLAIMER.md](DISCLAIMER**See:** [DISCLAIMER.md](DISCLAIMER**See:** [DISCLAIMER.md](DISCLAIMER**See:** [DISCLAIMER.-i**See:** [DISCLAIMER.md](DISCLAIMER**See:** [DISCLAI.com/Pranay1004/random-positioning-machine-iist/issues)
+See [DISCLAIMER.md](DISCLAIMER.md) for complete legal information.
 
 ---
 
-## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## s/Formu## 💡 F## 💡 F## 💡 F## 💡 F## 💡 F## _engine.py](src/physics_engine.py) (main algorithm)
-4. Run: `python src/main.py` and test in browser
+## For New Developers
 
-**Understanding the Code Structure:**
+**First Time Setup:**
+1. Read [docs/README.txt](docs/README.txt) (sections 1-3)
+2. Understand [docs/Formulas.txt](docs/Formulas.txt) (physics basics)
+3. Explore [src/simulation/physics_engine.py](src/simulation/physics_engine.py)
+4. Run `python src/main.py` and test in browser
+
+**Code Structure:**
 ```
 src/
-�├── main.py → Entry point, starts server
-├── physics_engine.py → Rotation matrices, graty calculations
-�├── websocket_server.py → Real-time data broadcast
-└── webapp/
-    ├── server.py → FastAPI backend
-    └── static/ → HTML/CSS/JavaScript frontend
+├── main.py                <- Entry point, starts server
+├── simulation/
+│   └── physics_engine.py  <- Rotation matrices, gravity
+├── webapp/
+│   ├── server.py          <- FastAPI backend
+│   └── static/            <- HTML/CSS/JavaScript
+└── hardware_interface/    <- Motor control
 ```
-
-See [Folder Structure](#-folder-structure) above for detaSee [Folder Structure](#-folder-structure) above for detaSee [Folder Structure](#-folder-structure) above for detaSee [Folder Structure](#-folder-structure) above for detaSee [Folder Structure](#-folder-structure) above for detaSee [Folder Structure](#-folder-structure) above for detaSee [Folder Structu-
-
-
-e e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e �e Ime �e �e �e �e �e �e �e �e �e �e �e � a physics research project
-- **AI-Genera- d:** Co- **AI-Genera- d:** Co- **AI-Genera- d:** Co- *LAIMER.md))
-- **No Warranty:** Use at your own risk for research purposes
-- **Citation Required:** Please cite [docs/REFERENCES.txt](docs/REFERENCES.txt)
 
 ---
 
-## ��📞 Support
+## Project Status
 
-For questions abouFor questige:** See [docs/README.txt](docs/README.txt)
+| Aspect | Status |
+|--------|--------|
+| Physics Engine | Complete (v3.1.1) |
+| Web Dashboard | Complete |
+| 3D Visualization | Complete |
+| API | Complete |
+| Hardware Integration | In Progress (v3.2.0) |
+| Unit Tests | Complete |
+
+---
+
+## Important Notes
+
+- **Research Use Only:** This is a physics research project
+- **AI-Generated:** Code uses AI assistance (see DISCLAIMER.md)
+- **No Warranty:** Use at your own risk for research purposes
+- **Citation Required:** Please cite docs/REFERENCES.txt
+
+---
+
+## Support
+
+- **Usage:** See [docs/README.txt](docs/README.txt)
 - **Physics:** See [docs/Formulas.txt](docs/Formulas.txt)
-- **Bugs:** Open an [Issue](https://github.com/Pranay1004/random-positioning-machine-iist/issues)
+- **Bugs:** Open an Issue on GitHub
 - **Legal:** Read [DISCLAIMER.md](DISCLAIMER.md)
 
 ---
