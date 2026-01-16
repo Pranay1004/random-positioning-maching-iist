@@ -1,0 +1,253 @@
+# =============================================================================
+# RPM DIGITAL TWIN - MAIN CONFIGURATION
+# =============================================================================
+# Version: 1.0.0
+# Author: RPM Digital Twin Team
+# =============================================================================
+
+# Application Settings
+app:
+  name: "RPM Digital Twin"
+  version: "1.0.0"
+  environment: "development"  # development, staging, production
+  debug: true
+  log_level: "DEBUG"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# =============================================================================
+# HARDWARE CONFIGURATION
+# =============================================================================
+hardware:
+  # Arduino Configuration
+  arduino:
+    enabled: true
+    port: "auto"  # auto-detect or specific port like "/dev/tty.usbmodem*" or "COM3"
+    baudrate: 115200
+    timeout: 1.0
+    reconnect_interval: 5.0
+    
+  # Raspberry Pi Configuration
+  raspberry_pi:
+    enabled: false
+    host: "192.168.1.100"
+    port: 5000
+    protocol: "tcp"  # tcp, websocket
+    
+  # Motor Configuration
+  motors:
+    inner_frame:
+      type: "NEMA23"
+      driver: "TB6600"
+      steps_per_revolution: 200
+      microstepping: 16
+      max_speed_rpm: 60.0
+      max_acceleration: 100.0  # RPM/s
+      direction_pin: 2
+      step_pin: 3
+      enable_pin: 4
+      
+    outer_frame:
+      type: "NEMA23"
+      driver: "TB6600"
+      steps_per_revolution: 200
+      microstepping: 16
+      max_speed_rpm: 60.0
+      max_acceleration: 100.0
+      direction_pin: 5
+      step_pin: 6
+      enable_pin: 7
+
+  # Sensors Configuration
+  sensors:
+    imu:
+      enabled: true
+      type: "MPU9250"
+      address: 0x68
+      sample_rate_hz: 100
+      
+    encoder_inner:
+      enabled: true
+      type: "rotary_incremental"
+      ppr: 2000  # Pulses per revolution
+      
+    encoder_outer:
+      enabled: true
+      type: "rotary_incremental"
+      ppr: 2000
+
+# =============================================================================
+# DATA ACQUISITION SETTINGS
+# =============================================================================
+data_acquisition:
+  sample_rate_hz: 100
+  buffer_size: 1000
+  timestamp_precision: "microsecond"
+  
+  channels:
+    - name: "inner_angle"
+      unit: "rad"
+      range: [-3.14159, 3.14159]
+    - name: "outer_angle"
+      unit: "rad"
+      range: [-3.14159, 3.14159]
+    - name: "inner_velocity"
+      unit: "rad/s"
+      range: [-10.0, 10.0]
+    - name: "outer_velocity"
+      unit: "rad/s"
+      range: [-10.0, 10.0]
+    - name: "accel_x"
+      unit: "m/s^2"
+      range: [-20.0, 20.0]
+    - name: "accel_y"
+      unit: "m/s^2"
+      range: [-20.0, 20.0]
+    - name: "accel_z"
+      unit: "m/s^2"
+      range: [-20.0, 20.0]
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+database:
+  # InfluxDB for time-series data
+  influxdb:
+    url: "http://localhost:8086"
+    token: "${INFLUXDB_TOKEN}"
+    org: "rpm_research"
+    bucket: "rpm_data"
+    retention_days: 365
+    
+  # PostgreSQL for metadata
+  postgresql:
+    host: "localhost"
+    port: 5432
+    database: "rpm_metadata"
+    user: "rpm_user"
+    password: "${POSTGRES_PASSWORD}"
+    
+  # Redis for real-time state
+  redis:
+    host: "localhost"
+    port: 6379
+    db: 0
+    password: "${REDIS_PASSWORD}"
+
+# =============================================================================
+# SIMULATION PARAMETERS
+# =============================================================================
+simulation:
+  # RPM Physical Parameters
+  rpm_geometry:
+    inner_frame_radius_m: 0.15
+    outer_frame_radius_m: 0.25
+    sample_position_m: [0.0, 0.0, 0.10]  # Default sample position [x, y, z]
+    
+  # Operating Modes
+  modes:
+    clinostat_3d:
+      description: "Classic 3D clinostat mode"
+      inner_speed_rpm: 2.0
+      outer_speed_rpm: 2.0
+      
+    random:
+      description: "Random direction mode"
+      velocity_range_rpm: [0.5, 5.0]
+      direction_change_interval_s: [2.0, 10.0]
+      
+    partial_gravity:
+      description: "Simulates partial gravity (Moon/Mars)"
+      target_gravity_fraction: 0.16  # Moon = 0.16, Mars = 0.38
+      
+  # Physics Constants
+  physics:
+    earth_gravity: 9.80665  # m/s^2
+    
+# =============================================================================
+# MICROGRAVITY ANALYSIS
+# =============================================================================
+microgravity:
+  # Time averaging window
+  averaging_window_s: 60.0
+  
+  # Quality metrics
+  quality_threshold: 0.01  # Maximum acceptable time-averaged g (g-units)
+  
+  # Analysis grid for 3D space
+  analysis_grid:
+    x_range_m: [-0.15, 0.15]
+    y_range_m: [-0.15, 0.15]
+    z_range_m: [0.0, 0.20]
+    resolution_m: 0.01
+
+# =============================================================================
+# USER INTERFACE SETTINGS
+# =============================================================================
+ui:
+  theme: "dark"  # dark, light
+  
+  # Display refresh rates
+  refresh_rates:
+    gauges_hz: 30
+    plots_hz: 10
+    3d_view_hz: 60
+    data_table_hz: 5
+    
+  # Default window size
+  window:
+    width: 1920
+    height: 1080
+    fullscreen: false
+    
+  # Plot settings
+  plots:
+    history_duration_s: 60
+    max_points: 6000
+    
+# =============================================================================
+# COMMUNICATION PROTOCOLS
+# =============================================================================
+communication:
+  # gRPC settings
+  grpc:
+    port: 50051
+    max_message_size_mb: 10
+    
+  # WebSocket for UI
+  websocket:
+    port: 8765
+    heartbeat_interval_s: 5.0
+    
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+  format: "{time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {name}:{function}:{line} - {message}"
+  
+  # File logging
+  file:
+    enabled: true
+    path: "logs/rpm_digital_twin.log"
+    rotation: "100 MB"
+    retention: "30 days"
+    
+  # Console logging
+  console:
+    enabled: true
+    colorize: true
+
+# =============================================================================
+# SAFETY LIMITS
+# =============================================================================
+safety:
+  # Emergency stop conditions
+  emergency_stop:
+    max_velocity_rpm: 100.0
+    max_acceleration: 200.0
+    vibration_threshold: 5.0  # g
+    temperature_max_c: 60.0
+    
+  # Watchdog
+  watchdog:
+    enabled: true
+    timeout_s: 1.0
+    action: "stop"  # stop, alarm, shutdown

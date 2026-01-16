@@ -1,0 +1,42 @@
+{
+  "name": "rpm-digital-twin",
+  "version": "1.0.0",
+  "description": "Random Positioning Machine Digital Twin - Commercial Grade Software",
+  "author": "RPM Digital Twin Team",
+  "license": "Proprietary",
+  "private": true,
+  "scripts": {
+    "start": "python src/main.py",
+    "start:sim": "python src/main.py --mode simulation --dashboard",
+    "start:hw": "python src/main.py --mode hardware --dashboard",
+    "start:hybrid": "python src/main.py --mode hybrid --dashboard",
+    "test": "pytest tests/ -v",
+    "test:cov": "pytest tests/ -v --cov=src --cov-report=html",
+    "lint": "black src/ tests/ && isort src/ tests/",
+    "lint:check": "black --check src/ tests/ && isort --check src/ tests/",
+    "typecheck": "mypy src/",
+    "docs": "cd docs && make html",
+    "clean": "find . -type d -name __pycache__ -exec rm -rf {} + && find . -type f -name '*.pyc' -delete",
+    "db:start": "docker-compose up -d",
+    "db:stop": "docker-compose down",
+    "db:logs": "docker-compose logs -f",
+    "arduino:upload": "arduino-cli compile --fqbn arduino:avr:mega firmware/arduino/rpm_controller && arduino-cli upload -p /dev/tty.usbmodem* --fqbn arduino:avr:mega firmware/arduino/rpm_controller",
+    "matlab:test": "matlab -batch \"run('src/matlab_engine/startup.m'); results = simulate_rpm(60, 0.01, 2, 2, 'Unit', 'rpm'); disp(results)\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rpm-digital-twin/rpm-digital-twin.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "rpm",
+    "random-positioning-machine",
+    "digital-twin",
+    "microgravity",
+    "space-biology",
+    "simulation",
+    "real-time"
+  ]
+}

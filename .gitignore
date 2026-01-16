@@ -1,0 +1,145 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Logs
+logs/
+*.log
+
+# Local configuration
+.env
+.env.local
+*.local.yaml
+
+# Data files (large)
+data/experiments/
+data/exports/
+data/calibration/
+*.h5
+*.hdf5
+*.parquet
+
+# Database
+*.db
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Unity specific
+unity/RPMDigitalTwin/Library/
+unity/RPMDigitalTwin/Temp/
+unity/RPMDigitalTwin/Obj/
+unity/RPMDigitalTwin/Build/
+unity/RPMDigitalTwin/Builds/
+unity/RPMDigitalTwin/Logs/
+unity/RPMDigitalTwin/UserSettings/
+unity/RPMDigitalTwin/*.csproj
+unity/RPMDigitalTwin/*.unityproj
+unity/RPMDigitalTwin/*.sln
+unity/RPMDigitalTwin/*.suo
+unity/RPMDigitalTwin/*.tmp
+unity/RPMDigitalTwin/*.user
+unity/RPMDigitalTwin/*.userprefs
+unity/RPMDigitalTwin/*.pidb
+unity/RPMDigitalTwin/*.booproj
+unity/RPMDigitalTwin/*.svd
+unity/RPMDigitalTwin/*.pdb
+unity/RPMDigitalTwin/*.mdb
+unity/RPMDigitalTwin/*.opendb
+unity/RPMDigitalTwin/*.VC.db
+
+# MATLAB
+*.asv
+*.m~
+*.autosave
+
+# Arduino
+firmware/arduino/rpm_controller/build/
+
+# Secrets (never commit)
+secrets/
+*.pem
+*.key
+*.crt
+
+# Docker
+docker-compose.override.yml
+
+# Large model files
+*.onnx
+*.pb
+*.pth
+*.pt

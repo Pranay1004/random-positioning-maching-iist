@@ -1,0 +1,2494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPM Digital Twin v2.0 | Microgravity Control System</title>
+    
+    <!-- Three.js for 3D visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Chart.js for real-time graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Roboto+Mono:wght@300;400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ============================================
+           SPACEX / TESLA DARK THEME v2.0
+           ============================================ */
+        
+        :root {
+            --bg-primary: #050508;
+            --bg-secondary: #0a0a10;
+            --bg-card: #0f0f18;
+            --bg-card-hover: #15152a;
+            --bg-input: #0a0a12;
+            --accent-cyan: #00e5ff;
+            --accent-green: #00ff9d;
+            --accent-orange: #ff8c00;
+            --accent-red: #ff2d55;
+            --accent-purple: #bf5af2;
+            --accent-yellow: #ffd60a;
+            --text-primary: #ffffff;
+            --text-secondary: #8899aa;
+            --text-muted: #4a5568;
+            --border-color: #1a1a2e;
+            --border-active: #00e5ff;
+            --glow-cyan: 0 0 30px rgba(0, 229, 255, 0.4);
+            --glow-green: 0 0 30px rgba(0, 255, 157, 0.4);
+            --glow-red: 0 0 30px rgba(255, 45, 85, 0.4);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* ============================================
+           HEADER
+           ============================================ */
+        
+        .header {
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, transparent 100%);
+            padding: 16px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 16px;
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        
+        .logo-version {
+            font-size: 10px;
+            color: var(--accent-cyan);
+            letter-spacing: 2px;
+        }
+        
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .connection-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .connection-badge:hover {
+            border-color: var(--accent-cyan);
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.connected {
+            background: var(--accent-green);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+        
+        .timestamp {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        /* ============================================
+           MAIN LAYOUT - 3 COLUMN
+           ============================================ */
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr 380px;
+            gap: 20px;
+            padding: 20px;
+            min-height: calc(100vh - 80px);
+        }
+        
+        /* ============================================
+           LEFT PANEL - CONTROLS
+           ============================================ */
+        
+        .control-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        
+        .panel-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        
+        .panel-indicator.active {
+            background: var(--accent-green);
+            box-shadow: var(--glow-green);
+        }
+        
+        /* Motor Control with Slider + Numeric Input */
+        .motor-control {
+            margin-bottom: 20px;
+        }
+        
+        .motor-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .motor-name {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .motor-input-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .motor-input {
+            width: 70px;
+            padding: 6px 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--accent-cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: right;
+            outline: none;
+            transition: all 0.2s;
+        }
+        
+        .motor-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+        }
+        
+        .motor-unit {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: var(--glow-cyan);
+            transition: transform 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .slider-limits {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-size: 9px;
+            color: var(--text-muted);
+            font-family: 'Roboto Mono', monospace;
+        }
+        
+        /* Frame Dimensions */
+        .dimension-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .dimension-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .dimension-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .dimension-input {
+            padding: 8px 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--accent-purple);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        
+        .dimension-input:focus {
+            border-color: var(--accent-purple);
+        }
+        
+        /* Control Buttons */
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--accent-green), #00cc7a);
+            color: #000;
+        }
+        
+        .btn-start:hover {
+            box-shadow: var(--glow-green);
+            transform: translateY(-2px);
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, var(--accent-red), #cc2244);
+            color: #fff;
+        }
+        
+        .btn-stop:hover {
+            box-shadow: var(--glow-red);
+            transform: translateY(-2px);
+        }
+        
+        .btn-reset {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-reset:hover {
+            border-color: var(--accent-cyan);
+        }
+        
+        /* ============================================
+           CENTER - 3D VISUALIZATION
+           ============================================ */
+        
+        .viz-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .viz-panel {
+            flex: 1;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            position: relative;
+            min-height: 400px;
+        }
+        
+        .viz-overlay-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background: linear-gradient(180deg, rgba(15, 15, 24, 0.95) 0%, transparent 100%);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .viz-mode {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+        }
+        
+        #rpm-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .viz-overlay-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background: linear-gradient(0deg, rgba(15, 15, 24, 0.95) 0%, transparent 100%);
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .angle-box {
+            text-align: center;
+            padding: 10px 20px;
+            background: rgba(5, 5, 8, 0.8);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .angle-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        
+        .angle-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .angle-value.inner { color: var(--accent-purple); }
+        .angle-value.outer { color: var(--accent-cyan); }
+        
+        /* Gravity Vector 3D Display */
+        .gravity-vector-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 16px;
+        }
+        
+        .vector-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .vector-component {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .vector-axis {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .vector-value {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .vector-value.positive { color: var(--accent-green); }
+        .vector-value.negative { color: var(--accent-red); }
+        .vector-value.zero { color: var(--text-secondary); }
+        
+        /* ============================================
+           RIGHT PANEL - METRICS & CONNECTIONS
+           ============================================ */
+        
+        .metrics-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        /* Main Metric - Time Averaged G */
+        .main-metric {
+            background: linear-gradient(135deg, rgba(0, 229, 255, 0.08), rgba(191, 90, 242, 0.08));
+            border: 1px solid var(--accent-cyan);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .main-metric-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        
+        .main-metric-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--accent-green);
+            text-shadow: 0 0 30px rgba(0, 255, 157, 0.5);
+        }
+        
+        .main-metric-unit {
+            font-size: 20px;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+        
+        .main-metric-note {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+        
+        /* Secondary Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .metric-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            transition: all 0.3s;
+        }
+        
+        .metric-card:hover {
+            border-color: var(--accent-cyan);
+        }
+        
+        .metric-label {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        
+        .metric-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .metric-value.cyan { color: var(--accent-cyan); }
+        .metric-value.green { color: var(--accent-green); }
+        .metric-value.orange { color: var(--accent-orange); }
+        .metric-value.purple { color: var(--accent-purple); }
+        .metric-value.yellow { color: var(--accent-yellow); }
+        
+        /* Chart */
+        .chart-container {
+            height: 180px;
+            position: relative;
+        }
+        
+        /* Connections Panel */
+        .connections-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 16px;
+        }
+        
+        .connection-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .connection-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .connection-item:hover {
+            border-color: var(--border-color);
+        }
+        
+        .connection-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .connection-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        .connection-icon.serial { background: rgba(0, 229, 255, 0.2); color: var(--accent-cyan); }
+        .connection-icon.network { background: rgba(191, 90, 242, 0.2); color: var(--accent-purple); }
+        .connection-icon.usb { background: rgba(0, 255, 157, 0.2); color: var(--accent-green); }
+        .connection-icon.gpio { background: rgba(255, 140, 0, 0.2); color: var(--accent-orange); }
+        
+        .connection-name {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .connection-port {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: 'Roboto Mono', monospace;
+        }
+        
+        .connection-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .connection-status.connected { background: rgba(0, 255, 157, 0.2); color: var(--accent-green); }
+        .connection-status.disconnected { background: rgba(255, 45, 85, 0.2); color: var(--accent-red); }
+        .connection-status.available { background: rgba(0, 229, 255, 0.2); color: var(--accent-cyan); }
+        .connection-status.simulated { background: rgba(255, 214, 10, 0.2); color: var(--accent-yellow); }
+        
+        .scan-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .scan-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        
+        @media (max-width: 1400px) {
+            .main-container {
+                grid-template-columns: 280px 1fr 320px;
+            }
+        }
+        
+        @media (max-width: 1100px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            
+            .viz-panel {
+                min-height: 350px;
+            }
+        }
+        
+        /* ============================================
+           ANIMATIONS
+           ============================================ */
+        
+        @keyframes glow-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 157, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(0, 255, 157, 0.6); }
+        }
+        
+        .running .main-metric {
+            animation: glow-pulse 2s infinite;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         HEADER
+         ============================================ -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">DT</div>
+            <div>
+                <div class="logo-text">RPM DIGITAL TWIN</div>
+                <div class="logo-version">v2.0 • Microgravity Simulation</div>
+            </div>
+        </div>
+        <div class="header-status">
+            <div class="connection-badge" onclick="scanConnections()">
+                <div class="status-dot" id="connection-dot"></div>
+                <span id="connection-text">Connecting...</span>
+            </div>
+            <div class="timestamp" id="timestamp">--:--:--</div>
+        </div>
+    </header>
+    
+    <!-- ============================================
+         MAIN CONTENT
+         ============================================ -->
+    <main class="main-container" id="main-container">
+        
+        <!-- LEFT COLUMN - CONTROLS -->
+        <div class="control-column">
+            
+            <!-- Motor Speed Control -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Motor Control</span>
+                    <div class="panel-indicator" id="motor-indicator"></div>
+                </div>
+                
+                <!-- Inner Motor -->
+                <div class="motor-control">
+                    <div class="motor-label">
+                        <span class="motor-name">Inner Motor Speed</span>
+                        <div class="motor-input-group">
+                            <input type="number" class="motor-input" id="inner-rpm-input" 
+                                   value="2.0" min="0" max="20" step="0.1">
+                            <span class="motor-unit">RPM</span>
+                        </div>
+                    </div>
+                    <div class="slider-row">
+                        <input type="range" id="inner-rpm-slider" min="0" max="20" step="0.1" value="2.0">
+                    </div>
+                    <div class="slider-limits">
+                        <span>0</span>
+                        <span>5</span>
+                        <span>10</span>
+                        <span>15</span>
+                        <span>20</span>
+                    </div>
+                </div>
+                
+                <!-- Outer Motor -->
+                <div class="motor-control">
+                    <div class="motor-label">
+                        <span class="motor-name">Outer Motor Speed</span>
+                        <div class="motor-input-group">
+                            <input type="number" class="motor-input" id="outer-rpm-input" 
+                                   value="2.0" min="0" max="20" step="0.1">
+                            <span class="motor-unit">RPM</span>
+                        </div>
+                    </div>
+                    <div class="slider-row">
+                        <input type="range" id="outer-rpm-slider" min="0" max="20" step="0.1" value="2.0">
+                    </div>
+                    <div class="slider-limits">
+                        <span>0</span>
+                        <span>5</span>
+                        <span>10</span>
+                        <span>15</span>
+                        <span>20</span>
+                    </div>
+                </div>
+                
+                <div class="button-row">
+                    <button class="btn btn-start" id="btn-start" onclick="startSimulation()">▶ START</button>
+                    <button class="btn btn-stop" id="btn-stop" onclick="stopSimulation()">⏹ STOP</button>
+                </div>
+                <div class="button-row">
+                    <button class="btn btn-reset" onclick="resetSimulation()">↺ RESET</button>
+                </div>
+            </div>
+            
+            <!-- Frame Dimensions -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Frame Dimensions (cm)</span>
+                </div>
+                
+                <div class="dimension-grid">
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Inner Length</label>
+                        <input type="number" class="dimension-input" id="inner-length" 
+                               value="80" min="10" max="300" step="1">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Inner Breadth</label>
+                        <input type="number" class="dimension-input" id="inner-breadth" 
+                               value="80" min="10" max="300" step="1">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Outer Length</label>
+                        <input type="number" class="dimension-input" id="outer-length" 
+                               value="150" min="10" max="300" step="1">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Outer Breadth</label>
+                        <input type="number" class="dimension-input" id="outer-breadth" 
+                               value="150" min="10" max="300" step="1">
+                    </div>
+                </div>
+                
+                <div class="button-row" style="margin-top: 12px;">
+                    <button class="btn btn-reset" onclick="updateFrameDimensions()">Apply Dimensions</button>
+                </div>
+            </div>
+            
+            <!-- Axis Inclination (Tilt Angles) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Axis Inclination (°)</span>
+                </div>
+                
+                <div class="dimension-grid">
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Inner Axis Tilt</label>
+                        <input type="number" class="dimension-input" id="inner-tilt" 
+                               value="0" min="-45" max="45" step="1" style="color: var(--accent-purple);">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Outer Axis Tilt</label>
+                        <input type="number" class="dimension-input" id="outer-tilt" 
+                               value="0" min="-45" max="45" step="1" style="color: var(--accent-cyan);">
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 10px; color: var(--text-muted);">
+                    Tilt the rotation axes from perpendicular (paper Eq. 2 assumes 0°)
+                </div>
+                
+                <div class="button-row" style="margin-top: 12px;">
+                    <button class="btn btn-reset" onclick="updateAxisInclination()">Apply Tilt</button>
+                </div>
+            </div>
+            
+            <!-- Enclosure / Bounding Box -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Sample Enclosure (cm)</span>
+                    <div class="panel-indicator" id="enclosure-indicator"></div>
+                </div>
+                
+                <div class="dimension-grid">
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Width (X)</label>
+                        <input type="number" class="dimension-input" id="enclosure-x" 
+                               value="50" min="10" max="200" step="5" style="color: #ff4444;">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Height (Y)</label>
+                        <input type="number" class="dimension-input" id="enclosure-y" 
+                               value="50" min="10" max="200" step="5" style="color: #44ff44;">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Depth (Z)</label>
+                        <input type="number" class="dimension-input" id="enclosure-z" 
+                               value="50" min="10" max="200" step="5" style="color: #4444ff;">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Show Box</label>
+                        <select class="dimension-input" id="show-enclosure" style="color: var(--accent-cyan);">
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="button-row" style="margin-top: 10px;">
+                    <button class="btn btn-reset" onclick="updateEnclosure()">Apply Enclosure</button>
+                </div>
+                
+                <!-- 3D Point Sampling -->
+                <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                    <div class="panel-title" style="margin-bottom: 10px;">Sample Point Calculator</div>
+                    <div class="dimension-grid">
+                        <div class="dimension-input-group">
+                            <label class="dimension-label">X (cm)</label>
+                            <input type="number" class="dimension-input" id="sample-pt-x" 
+                                   value="0" min="-100" max="100" step="1" style="color: #ff4444;">
+                        </div>
+                        <div class="dimension-input-group">
+                            <label class="dimension-label">Y (cm)</label>
+                            <input type="number" class="dimension-input" id="sample-pt-y" 
+                                   value="0" min="-100" max="100" step="1" style="color: #44ff44;">
+                        </div>
+                        <div class="dimension-input-group">
+                            <label class="dimension-label">Z (cm)</label>
+                            <input type="number" class="dimension-input" id="sample-pt-z" 
+                                   value="0" min="-100" max="100" step="1" style="color: #4444ff;">
+                        </div>
+                        <div class="dimension-input-group">
+                            <label class="dimension-label">Show Point</label>
+                            <button class="btn btn-reset" style="padding: 8px; font-size: 10px;" onclick="addSamplePoint()">+ Add</button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 10px; color: var(--text-muted);">
+                        Add points inside enclosure to track local gravity
+                    </div>
+                    <div id="sample-points-list" style="margin-top: 8px; max-height: 80px; overflow-y: auto; font-size: 10px;">
+                        <!-- Sample points will be listed here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payload Dimensions -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Payload Dimensions (cm)</span>
+                </div>
+                
+                <div class="dimension-grid">
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Width (X)</label>
+                        <input type="number" class="dimension-input" id="payload-x" 
+                               value="50" min="5" max="100" step="5" style="color: var(--accent-cyan);">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Height (Y)</label>
+                        <input type="number" class="dimension-input" id="payload-y" 
+                               value="50" min="5" max="100" step="5" style="color: var(--accent-cyan);">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Depth (Z)</label>
+                        <input type="number" class="dimension-input" id="payload-z" 
+                               value="50" min="5" max="100" step="5" style="color: var(--accent-cyan);">
+                    </div>
+                    <div class="dimension-input-group">
+                        <label class="dimension-label">Show Payload</label>
+                        <select class="dimension-input" id="show-payload" style="color: var(--accent-cyan);">
+                            <option value="yes">Yes</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-top: 6px; font-size: 10px; color: var(--text-muted);">Payload must fit inside inner frame</div>
+                
+                <div class="button-row" style="margin-top: 10px;">
+                    <button class="btn btn-reset" onclick="updatePayloadDimensions()">Apply Payload</button>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- CENTER COLUMN - 3D VISUALIZATION -->
+        <div class="viz-column">
+            
+            <!-- 3D RPM View -->
+            <div class="viz-panel">
+                <div class="viz-overlay-top">
+                    <span class="panel-title">3D Visualization</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <button onclick="zoomIn()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--accent-cyan); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;" title="Zoom In">🔍+</button>
+                        <button onclick="zoomOut()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--accent-cyan); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;" title="Zoom Out">🔍−</button>
+                        <button onclick="resetView()" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--accent-cyan); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;" title="Reset View">⟲</button>
+                        <span class="viz-mode">Real-Time • 50Hz</span>
+                    </div>
+                </div>
+                <canvas id="rpm-canvas"></canvas>
+                <div class="viz-overlay-bottom">
+                    <div class="angle-box">
+                        <div class="angle-label">φ (Inner)</div>
+                        <div class="angle-value inner" id="phi-angle">0.0°</div>
+                    </div>
+                    <div class="angle-box">
+                        <div class="angle-label">ψ (Outer)</div>
+                        <div class="angle-value outer" id="psi-angle">0.0°</div>
+                    </div>
+                    <div class="angle-box">
+                        <div class="angle-label">ω_φ</div>
+                        <div class="angle-value inner" id="omega-phi">0.00</div>
+                    </div>
+                    <div class="angle-box">
+                        <div class="angle-label">ω_ψ</div>
+                        <div class="angle-value outer" id="omega-psi">0.00</div>
+                    </div>
+                    <div class="angle-box">
+                        <div class="angle-label">γ = ω_φ/ω_ψ</div>
+                        <div class="angle-value" style="color: #ffd60a;" id="gamma-ratio">0.00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gravity Vector Display -->
+            <div class="gravity-vector-panel">
+                <div class="panel-header">
+                    <span class="panel-title">Gravity Vector (Sample Frame)</span>
+                </div>
+                <div class="vector-display">
+                    <div class="vector-component">
+                        <div class="vector-axis">Gx</div>
+                        <div class="vector-value" id="gx">0.000</div>
+                    </div>
+                    <div class="vector-component">
+                        <div class="vector-axis">Gy</div>
+                        <div class="vector-value" id="gy">-1.000</div>
+                    </div>
+                    <div class="vector-component">
+                        <div class="vector-axis">Gz</div>
+                        <div class="vector-value" id="gz">0.000</div>
+                    </div>
+                </div>
+                <div class="vector-display" style="margin-top: 8px;">
+                    <div class="vector-component">
+                        <div class="vector-axis">Avg Gx</div>
+                        <div class="vector-value" id="avg-gx">0.000</div>
+                    </div>
+                    <div class="vector-component">
+                        <div class="vector-axis">Avg Gy</div>
+                        <div class="vector-value" id="avg-gy">0.000</div>
+                    </div>
+                    <div class="vector-component">
+                        <div class="vector-axis">Avg Gz</div>
+                        <div class="vector-value" id="avg-gz">0.000</div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- RIGHT COLUMN - METRICS & CONNECTIONS -->
+        <div class="metrics-column">
+            
+            <!-- Main Metric -->
+            <div class="main-metric">
+                <div class="main-metric-label">Time-Averaged |g⃗|</div>
+                <div class="main-metric-value" id="mean-g">0.000<span class="main-metric-unit">g</span></div>
+                <div class="main-metric-note">||⟨g⃗⟩|| • True Microgravity Metric</div>
+            </div>
+            
+            <!-- Secondary Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Instant |g⃗|</div>
+                    <div class="metric-value cyan" id="instant-g">1.000</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Elapsed</div>
+                    <div class="metric-value green" id="elapsed">00:00:00</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Min ⟨g⃗⟩</div>
+                    <div class="metric-value purple" id="min-g">0.000</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Max ⟨g⃗⟩</div>
+                    <div class="metric-value orange" id="max-g">0.000</div>
+                </div>
+                <div class="metric-card" style="grid-column: span 2;">
+                    <div class="metric-label">Samples</div>
+                    <div class="metric-value yellow" id="samples">0</div>
+                </div>
+            </div>
+            
+            <!-- Chart -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">⟨g⃗⟩ Convergence</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="gravity-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Gravity Components Chart (like Fig 3B) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Gravity Components (X,Y,Z) vs Time</span>
+                </div>
+                <div class="chart-container" style="height: 160px;">
+                    <canvas id="components-chart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Sphere Trajectory (like Fig 3C) -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">g⃗ Trajectory on Unit Sphere</span>
+                </div>
+                <div style="height: 200px; position: relative;">
+                    <canvas id="sphere-canvas"></canvas>
+                </div>
+            </div>
+            
+            <!-- Connections -->
+            <div class="connections-panel">
+                <div class="panel-header">
+                    <span class="panel-title">Hardware Connections</span>
+                </div>
+                <div class="connection-list" id="connection-list">
+                    <div class="connection-item">
+                        <div class="connection-info">
+                            <div class="connection-icon network">🌐</div>
+                            <div>
+                                <div class="connection-name">WebSocket</div>
+                                <div class="connection-port">ws://localhost:8080</div>
+                            </div>
+                        </div>
+                        <span class="connection-status disconnected" id="ws-status">Connecting</span>
+                    </div>
+                </div>
+                <button class="scan-btn" onclick="scanConnections()">🔍 Scan Connections</button>
+            </div>
+            
+        </div>
+        
+    </main>
+    
+    <!-- ============================================
+         JAVASCRIPT
+         ============================================ -->
+    <script>
+        // ============================================
+        // GLOBAL STATE
+        // ============================================
+        let ws = null;
+        let scene, camera, renderer, innerFrame, outerFrame, sample;
+        let gravityChart = null;
+        let gravityData = [];
+        const maxDataPoints = 300;
+        let isRunning = false;
+        
+        // Frame dimensions for 3D (must be larger than payload)
+        let frameDimensions = {
+            innerLength: 0.80,   // 80cm - larger than 50cm payload
+            innerBreadth: 0.80,  // 80cm
+            outerLength: 1.50,   // 150cm - larger than inner frame
+            outerBreadth: 1.50   // 150cm
+        };
+        
+        // Enclosure / Bounding box dimensions (in meters)
+        let enclosureDimensions = { x: 0.50, y: 0.50, z: 0.50 };
+        let enclosureMesh = null;
+        let showEnclosure = true;
+        
+        // Payload box mounted on inner frame (centered at origin)
+        let payloadMesh = null;
+        let payloadDimensions = { x: 0.50, y: 0.50, z: 0.50 }; // 50cm cube
+        
+        // Camera/zoom state - dynamically calculated based on frame size
+        let cameraDistance = 4.5;  // Default for 150cm frame
+        let cameraAngleX = 0.5;
+        let cameraAngleY = 0.8;
+        let minCameraDistance = 0.8;
+        let maxCameraDistance = 15.0;
+        
+        // Smooth tilt transitions
+        let targetTilt = { inner: 0, outer: 0 };
+        let tiltTransitionSpeed = 2.0; // degrees per frame
+        
+        // Sample points for gravity calculation at specific locations
+        let samplePoints = [];
+        let samplePointMeshes = [];
+        
+        // ============================================
+        // THREE.JS 3D VISUALIZATION - PROPER RPM STRUCTURE
+        // Based on Figure 2 from research paper
+        // ============================================
+        
+        let referenceAxes = null;  // For dotted reference axes
+        let gravityTrajectory = [];  // Store gravity vector history for sphere plot
+        let trajectoryLine = null;
+        const maxTrajectoryPoints = 500;
+        
+        // Axis tilt values for visualization
+        let axisTilt = { inner: 0, outer: 0 };
+        
+        function init3D() {
+            const canvas = document.getElementById('rpm-canvas');
+            const container = canvas.parentElement;
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050508);
+            
+            camera = new THREE.PerspectiveCamera(
+                45,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0.8, 0.6, 0.8);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x606060, 0.8);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            directionalLight.position.set(5, 10, 5);
+            scene.add(directionalLight);
+            
+            const pointLight1 = new THREE.PointLight(0x00e5ff, 0.4, 10);
+            pointLight1.position.set(1, 0.5, 1);
+            scene.add(pointLight1);
+            
+            // Grid (subtle) - sized for 150cm outer frame + shafts
+            const gridSize = Math.max(frameDimensions.outerLength, frameDimensions.outerBreadth) * 3;
+            const gridHelper = new THREE.GridHelper(gridSize, 40, 0x1a1a2e, 0x0a0a12);
+            gridHelper.position.y = -frameDimensions.outerBreadth * 0.7;
+            scene.add(gridHelper);
+            
+            // Create reference axes (dotted lines for lab frame)
+            createReferenceAxes();
+            
+            // Create RPM frames
+            createFrames();
+            
+            // Create enclosure/bounding box
+            createEnclosure();
+            
+            animate();
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function createEnclosure() {
+            // Remove existing enclosure from innerFrame or scene
+            if (enclosureMesh) {
+                if (innerFrame) {
+                    innerFrame.remove(enclosureMesh);
+                }
+                scene.remove(enclosureMesh);
+                enclosureMesh = null;
+            }
+            
+            if (!showEnclosure) return;
+            
+            // Create wireframe box for enclosure (attached to inner frame)
+            const geometry = new THREE.BoxGeometry(
+                enclosureDimensions.x,
+                enclosureDimensions.y,
+                enclosureDimensions.z
+            );
+            const edges = new THREE.EdgesGeometry(geometry);
+            const material = new THREE.LineBasicMaterial({ 
+                color: 0x00ff9d, 
+                transparent: true, 
+                opacity: 0.5 
+            });
+            enclosureMesh = new THREE.LineSegments(edges, material);
+            
+            // Add to inner frame so it rotates with it
+            if (innerFrame) {
+                innerFrame.add(enclosureMesh);
+            } else {
+                scene.add(enclosureMesh);
+            }
+        }
+        
+        function updateEnclosure() {
+            // Get dimensions from inputs (convert cm to m)
+            enclosureDimensions.x = parseFloat(document.getElementById('enclosure-x').value) / 100 || 0.50;
+            enclosureDimensions.y = parseFloat(document.getElementById('enclosure-y').value) / 100 || 0.50;
+            enclosureDimensions.z = parseFloat(document.getElementById('enclosure-z').value) / 100 || 0.50;
+            showEnclosure = document.getElementById('show-enclosure').value === 'yes';
+            
+            // Recreate enclosure
+            createEnclosure();
+            
+            // Update sample points positions
+            updateSamplePointMeshes();
+        }
+        
+        function addSamplePoint() {
+            const x = parseFloat(document.getElementById('sample-pt-x').value) / 100 || 0;
+            const y = parseFloat(document.getElementById('sample-pt-y').value) / 100 || 0;
+            const z = parseFloat(document.getElementById('sample-pt-z').value) / 100 || 0;
+            
+            // Check if point is within enclosure
+            const halfX = enclosureDimensions.x / 2;
+            const halfY = enclosureDimensions.y / 2;
+            const halfZ = enclosureDimensions.z / 2;
+            
+            if (Math.abs(x) > halfX || Math.abs(y) > halfY || Math.abs(z) > halfZ) {
+                alert(`Point (${(x*100).toFixed(0)}, ${(y*100).toFixed(0)}, ${(z*100).toFixed(0)}) cm is outside the enclosure!`);
+                return;
+            }
+            
+            const pointId = Date.now();
+            const point = {
+                id: pointId,
+                x: x,
+                y: y,
+                z: z,
+                gravityHistory: [],
+                avgGravity: { x: 0, y: 0, z: 0 },
+                taSMG: 1.0
+            };
+            
+            samplePoints.push(point);
+            
+            // Create visual marker for the point
+            const markerGeom = new THREE.SphereGeometry(0.01, 16, 16);
+            const markerMat = new THREE.MeshBasicMaterial({ 
+                color: 0xffff00,
+                transparent: true,
+                opacity: 0.9
+            });
+            const marker = new THREE.Mesh(markerGeom, markerMat);
+            marker.position.set(x, y, z);
+            marker.userData.pointId = pointId;
+            
+            if (innerFrame) {
+                innerFrame.add(marker);
+            }
+            samplePointMeshes.push(marker);
+            
+            // Update UI list
+            updateSamplePointsList();
+        }
+        
+        function removeSamplePoint(pointId) {
+            // Remove from array
+            samplePoints = samplePoints.filter(p => p.id !== pointId);
+            
+            // Remove mesh
+            const meshIndex = samplePointMeshes.findIndex(m => m.userData.pointId === pointId);
+            if (meshIndex !== -1) {
+                const mesh = samplePointMeshes[meshIndex];
+                if (innerFrame) innerFrame.remove(mesh);
+                else scene.remove(mesh);
+                samplePointMeshes.splice(meshIndex, 1);
+            }
+            
+            updateSamplePointsList();
+        }
+        
+        function updateSamplePointMeshes() {
+            // Reposition all sample point meshes
+            samplePointMeshes.forEach(mesh => {
+                const point = samplePoints.find(p => p.id === mesh.userData.pointId);
+                if (point) {
+                    mesh.position.set(point.x, point.y, point.z);
+                }
+            });
+        }
+        
+        function updateSamplePointsList() {
+            const listEl = document.getElementById('sample-points-list');
+            if (samplePoints.length === 0) {
+                listEl.innerHTML = '<span style="color: var(--text-muted);">No sample points added</span>';
+                return;
+            }
+            
+            let html = '';
+            samplePoints.forEach(pt => {
+                const xCm = (pt.x * 100).toFixed(0);
+                const yCm = (pt.y * 100).toFixed(0);
+                const zCm = (pt.z * 100).toFixed(0);
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border-color);">
+                        <span style="color: #ffff00;">● (${xCm}, ${yCm}, ${zCm}) cm</span>
+                        <span style="color: var(--accent-green);">taSMG: ${pt.taSMG.toFixed(4)}g</span>
+                        <button onclick="removeSamplePoint(${pt.id})" style="background: none; border: none; color: var(--accent-red); cursor: pointer; font-size: 12px;">✕</button>
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
+        }
+        
+        function updateSamplePointsGravity(gx, gy, gz) {
+            // Update gravity for each sample point
+            // Note: For a rigid body RPM, all points experience the same gravity vector direction
+            // but the effective gravity at different positions could include centrifugal effects
+            // For simplicity, we track the same gravity vector for all points in the enclosure
+            
+            samplePoints.forEach(pt => {
+                pt.gravityHistory.push({ x: gx, y: gy, z: gz });
+                if (pt.gravityHistory.length > 3000) {
+                    pt.gravityHistory.shift();
+                }
+                
+                // Calculate time-averaged gravity for this point
+                const n = pt.gravityHistory.length;
+                let sumX = 0, sumY = 0, sumZ = 0;
+                pt.gravityHistory.forEach(g => {
+                    sumX += g.x;
+                    sumY += g.y;
+                    sumZ += g.z;
+                });
+                
+                pt.avgGravity = { x: sumX/n, y: sumY/n, z: sumZ/n };
+                pt.taSMG = Math.sqrt(pt.avgGravity.x**2 + pt.avgGravity.y**2 + pt.avgGravity.z**2);
+            });
+            
+            // Update list display periodically (every 50 updates)
+            if (Math.random() < 0.02) {
+                updateSamplePointsList();
+            }
+        }
+        
+        function createDottedLine(start, end, color) {
+            // Create dotted line using dashed material
+            const points = [
+                new THREE.Vector3(...start),
+                new THREE.Vector3(...end)
+            ];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineDashedMaterial({
+                color: color,
+                dashSize: 0.02,
+                gapSize: 0.015,
+                linewidth: 1
+            });
+            const line = new THREE.Line(geometry, material);
+            line.computeLineDistances();
+            return line;
+        }
+        
+        function createReferenceAxes() {
+            // Non-inclined reference axes (lab frame) - DOTTED LINES
+            referenceAxes = new THREE.Group();
+            
+            const axisLength = 0.5;
+            
+            // X-axis (red dotted)
+            const xAxis = createDottedLine([-axisLength, 0, 0], [axisLength, 0, 0], 0xff4444);
+            referenceAxes.add(xAxis);
+            
+            // Y-axis (green dotted) - vertical
+            const yAxis = createDottedLine([0, -axisLength, 0], [0, axisLength, 0], 0x44ff44);
+            referenceAxes.add(yAxis);
+            
+            // Z-axis (blue dotted)
+            const zAxis = createDottedLine([0, 0, -axisLength], [0, 0, axisLength], 0x4444ff);
+            referenceAxes.add(zAxis);
+            
+            // Axis labels
+            // Add small spheres at positive ends
+            const labelSize = 0.012;
+            const xLabel = new THREE.Mesh(
+                new THREE.SphereGeometry(labelSize, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0xff4444 })
+            );
+            xLabel.position.set(axisLength + 0.02, 0, 0);
+            referenceAxes.add(xLabel);
+            
+            const yLabel = new THREE.Mesh(
+                new THREE.SphereGeometry(labelSize, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0x44ff44 })
+            );
+            yLabel.position.set(0, axisLength + 0.02, 0);
+            referenceAxes.add(yLabel);
+            
+            const zLabel = new THREE.Mesh(
+                new THREE.SphereGeometry(labelSize, 8, 8),
+                new THREE.MeshBasicMaterial({ color: 0x4444ff })
+            );
+            zLabel.position.set(0, 0, axisLength + 0.02);
+            referenceAxes.add(zLabel);
+            
+            scene.add(referenceAxes);
+        }
+        
+        function createBoxFrame(width, height, depth, thickness, color) {
+            // Create a proper rectangular frame like in Figure 2
+            const group = new THREE.Group();
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: false,
+                shininess: 80
+            });
+            
+            const hw = width / 2;
+            const hh = height / 2;
+            const hd = depth / 2;
+            const t = thickness;
+            
+            // Create box geometry for frame bars
+            function createBar(w, h, d, x, y, z) {
+                const geom = new THREE.BoxGeometry(w, h, d);
+                const mesh = new THREE.Mesh(geom, material.clone());
+                mesh.position.set(x, y, z);
+                return mesh;
+            }
+            
+            // Vertical bars (4 corners)
+            group.add(createBar(t, height, t, -hw, 0, -hd));
+            group.add(createBar(t, height, t, hw, 0, -hd));
+            group.add(createBar(t, height, t, -hw, 0, hd));
+            group.add(createBar(t, height, t, hw, 0, hd));
+            
+            // Horizontal bars - top (4 edges)
+            group.add(createBar(width, t, t, 0, hh, -hd));
+            group.add(createBar(width, t, t, 0, hh, hd));
+            group.add(createBar(t, t, depth, -hw, hh, 0));
+            group.add(createBar(t, t, depth, hw, hh, 0));
+            
+            // Horizontal bars - bottom (4 edges)
+            group.add(createBar(width, t, t, 0, -hh, -hd));
+            group.add(createBar(width, t, t, 0, -hh, hd));
+            group.add(createBar(t, t, depth, -hw, -hh, 0));
+            group.add(createBar(t, t, depth, hw, -hh, 0));
+            
+            return group;
+        }
+        
+        function createFrames() {
+            // Clear existing frames
+            if (outerFrame) scene.remove(outerFrame);
+            
+            const outerW = frameDimensions.outerLength;
+            const outerH = frameDimensions.outerBreadth;
+            const outerD = outerW * 0.06;  // Depth proportional to width
+            const innerW = frameDimensions.innerLength;
+            const innerH = frameDimensions.innerBreadth;
+            const innerD = innerW * 0.05;
+            const barThickness = Math.max(0.02, outerW * 0.015);  // Scale with frame size
+            
+            // === OUTER FRAME (Gray/Silver) - rotates around Y axis ===
+            outerFrame = new THREE.Group();
+            
+            // Create outer frame structure (like Figure 4G - gray frame)
+            const outerFrameGeom = createBoxFrame(outerW, outerH, outerD, barThickness, 0x808090);
+            outerFrame.add(outerFrameGeom);
+            
+            // ═══════════════════════════════════════════════════════════════════
+            // OUTER FRAME VERTICAL SHAFTS (Fig 4F, 5A) - Y-axis rotation
+            // These connect to the A-frame stands (future feature)
+            // ═══════════════════════════════════════════════════════════════════
+            const shaftMat = new THREE.MeshPhongMaterial({ color: 0x606070, shininess: 80 });
+            const shaftRadius = barThickness * 0.6;
+            const shaftLength = outerH * 0.18;  // 18% of frame height
+            
+            // Top shaft (where outer motor connects)
+            const topShaft = new THREE.Mesh(
+                new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 16),
+                shaftMat
+            );
+            topShaft.position.set(0, outerH/2 + shaftLength/2, 0);
+            outerFrame.add(topShaft);
+            
+            // Top shaft cap (bearing housing visual)
+            const topCap = new THREE.Mesh(
+                new THREE.CylinderGeometry(shaftRadius * 1.5, shaftRadius * 1.5, shaftLength * 0.15, 16),
+                new THREE.MeshPhongMaterial({ color: 0x505060, shininess: 60 })
+            );
+            topCap.position.set(0, outerH/2 + shaftLength + shaftLength * 0.075, 0);
+            outerFrame.add(topCap);
+            
+            // Bottom shaft
+            const bottomShaft = new THREE.Mesh(
+                new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 16),
+                shaftMat
+            );
+            bottomShaft.position.set(0, -outerH/2 - shaftLength/2, 0);
+            outerFrame.add(bottomShaft);
+            
+            // Bottom shaft cap
+            const bottomCap = new THREE.Mesh(
+                new THREE.CylinderGeometry(shaftRadius * 1.5, shaftRadius * 1.5, shaftLength * 0.15, 16),
+                new THREE.MeshPhongMaterial({ color: 0x505060, shininess: 60 })
+            );
+            bottomCap.position.set(0, -outerH/2 - shaftLength - shaftLength * 0.075, 0);
+            outerFrame.add(bottomCap);
+            
+            // === INNER FRAME (Blue) - rotates around local Z axis ===
+            innerFrame = new THREE.Group();
+            
+            // Create inner frame structure (like Figure 4L - blue frame)
+            const innerFrameGeom = createBoxFrame(innerW, innerH, innerD, barThickness * 0.8, 0x5090ff);
+            innerFrame.add(innerFrameGeom);
+            
+            // ═══════════════════════════════════════════════════════════════════
+            // INNER-TO-OUTER HORIZONTAL CONNECTION BARS (Fig 4I, 5C)
+            // These are the rotation axis for inner frame (Z-axis rotation)
+            // ═══════════════════════════════════════════════════════════════════
+            const innerShaftMat = new THREE.MeshPhongMaterial({ color: 0x707080, shininess: 80 });
+            const innerShaftRadius = barThickness * 0.5;
+            // Bar length = gap between inner and outer frame edges
+            const gapWidth = (outerW - innerW) / 2;
+            const innerShaftLen = gapWidth * 0.9;  // 90% of gap
+            
+            // Left connection bar (connects inner frame to outer frame)
+            const leftBar = new THREE.Mesh(
+                new THREE.CylinderGeometry(innerShaftRadius, innerShaftRadius, innerShaftLen, 16),
+                innerShaftMat
+            );
+            leftBar.rotation.z = Math.PI / 2;  // Rotate to horizontal along X
+            leftBar.position.set(-innerW/2 - innerShaftLen/2, 0, 0);
+            innerFrame.add(leftBar);
+            
+            // Left bar mount (on outer frame side)
+            const leftMount = new THREE.Mesh(
+                new THREE.CylinderGeometry(innerShaftRadius * 1.4, innerShaftRadius * 1.4, innerShaftLen * 0.12, 16),
+                new THREE.MeshPhongMaterial({ color: 0x505060, shininess: 60 })
+            );
+            leftMount.rotation.z = Math.PI / 2;
+            leftMount.position.set(-innerW/2 - innerShaftLen - innerShaftLen * 0.06, 0, 0);
+            innerFrame.add(leftMount);
+            
+            // Right connection bar
+            const rightBar = new THREE.Mesh(
+                new THREE.CylinderGeometry(innerShaftRadius, innerShaftRadius, innerShaftLen, 16),
+                innerShaftMat
+            );
+            rightBar.rotation.z = Math.PI / 2;
+            rightBar.position.set(innerW/2 + innerShaftLen/2, 0, 0);
+            innerFrame.add(rightBar);
+            
+            // Right bar mount
+            const rightMount = new THREE.Mesh(
+                new THREE.CylinderGeometry(innerShaftRadius * 1.4, innerShaftRadius * 1.4, innerShaftLen * 0.12, 16),
+                new THREE.MeshPhongMaterial({ color: 0x505060, shininess: 60 })
+            );
+            rightMount.rotation.z = Math.PI / 2;
+            rightMount.position.set(innerW/2 + innerShaftLen + innerShaftLen * 0.06, 0, 0);
+            innerFrame.add(rightMount);
+            
+            // === SAMPLE PLATFORM (at center of inner frame) ===
+            sample = new THREE.Group();
+            
+            // Sample holder platform (scaled with frame)
+            const platformSize = Math.min(innerW, innerH) * 0.04;
+            const platformGeom = new THREE.CylinderGeometry(platformSize, platformSize, platformSize * 0.3, 32);
+            const platformMat = new THREE.MeshPhongMaterial({ color: 0x00ff9d, emissive: 0x00ff9d, emissiveIntensity: 0.3 });
+            const platform = new THREE.Mesh(platformGeom, platformMat);
+            sample.add(platform);
+            
+            // Sample (glowing sphere)
+            const sampleSphere = new THREE.Mesh(
+                new THREE.SphereGeometry(platformSize * 0.7, 32, 32),
+                new THREE.MeshPhongMaterial({ 
+                    color: 0x00ff9d, 
+                    emissive: 0x00ff9d, 
+                    emissiveIntensity: 0.6 
+                })
+            );
+            sampleSphere.position.y = platformSize * 0.6;
+            sample.add(sampleSphere);
+            
+            // Glow
+            const glow = new THREE.Mesh(
+                new THREE.SphereGeometry(platformSize, 16, 16),
+                new THREE.MeshBasicMaterial({ color: 0x00ff9d, transparent: true, opacity: 0.25 })
+            );
+            glow.position.y = platformSize * 0.6;
+            sample.add(glow);
+            
+            innerFrame.add(sample);
+            
+            // === PAYLOAD BOX (mounted on inner frame like CAD images) ===
+            createPayloadBox();
+            
+            // === ROTATING AXIS INDICATORS (solid lines on frames) ===
+            // Outer frame Y-axis indicator (green solid)
+            const outerAxisMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const outerAxisGeom = new THREE.CylinderGeometry(0.004, 0.004, outerH + 0.1, 8);
+            const outerAxis = new THREE.Mesh(outerAxisGeom, outerAxisMat);
+            outerFrame.add(outerAxis);
+            
+            // Inner frame X-axis indicator (red solid)
+            const innerAxisMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const innerAxisGeom = new THREE.CylinderGeometry(0.004, 0.004, innerW + 0.06, 8);
+            const innerAxis = new THREE.Mesh(innerAxisGeom, innerAxisMat);
+            innerAxis.rotation.z = Math.PI / 2;
+            innerFrame.add(innerAxis);
+            
+            // Add arrow heads for rotation direction
+            const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const arrowGeom = new THREE.ConeGeometry(0.012, 0.025, 8);
+            
+            // Arrow on outer axis (rotation direction indicator)
+            const outerArrow = new THREE.Mesh(arrowGeom, arrowMat.clone());
+            outerArrow.position.set(0.03, outerH/2 + 0.02, 0);
+            outerArrow.rotation.z = -Math.PI / 2;
+            outerFrame.add(outerArrow);
+            
+            // Arrow on inner axis
+            const innerArrow = new THREE.Mesh(arrowGeom, arrowMat.clone());
+            innerArrow.position.set(innerW/2 + 0.02, 0.03, 0);
+            innerArrow.rotation.z = Math.PI;
+            innerFrame.add(innerArrow);
+            
+            // Add inner frame to outer frame (proper nesting)
+            outerFrame.add(innerFrame);
+            
+            scene.add(outerFrame);
+        }
+        
+        function onWindowResize() {
+            const container = document.getElementById('rpm-canvas').parentElement;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        
+        function updateFrameRotations(phiDeg, psiDeg) {
+            // Smooth tilt transition
+            smoothTiltUpdate();
+            
+            if (outerFrame) {
+                // Outer frame rotates around Y axis (ψ rotation)
+                // Apply smoothed tilt first, then rotation
+                outerFrame.rotation.x = axisTilt.outer * Math.PI / 180;
+                outerFrame.rotation.y = psiDeg * Math.PI / 180;
+            }
+            if (innerFrame) {
+                // Inner frame rotates around Z axis (φ rotation)
+                // Apply smoothed tilt to inner frame
+                innerFrame.rotation.x = axisTilt.inner * Math.PI / 180;
+                innerFrame.rotation.z = phiDeg * Math.PI / 180;
+            }
+        }
+        
+        function smoothTiltUpdate() {
+            // Gradually move axisTilt towards targetTilt
+            const step = tiltTransitionSpeed;
+            
+            if (Math.abs(axisTilt.inner - targetTilt.inner) > 0.1) {
+                if (axisTilt.inner < targetTilt.inner) {
+                    axisTilt.inner = Math.min(axisTilt.inner + step, targetTilt.inner);
+                } else {
+                    axisTilt.inner = Math.max(axisTilt.inner - step, targetTilt.inner);
+                }
+            } else {
+                axisTilt.inner = targetTilt.inner;
+            }
+            
+            if (Math.abs(axisTilt.outer - targetTilt.outer) > 0.1) {
+                if (axisTilt.outer < targetTilt.outer) {
+                    axisTilt.outer = Math.min(axisTilt.outer + step, targetTilt.outer);
+                } else {
+                    axisTilt.outer = Math.max(axisTilt.outer - step, targetTilt.outer);
+                }
+            } else {
+                axisTilt.outer = targetTilt.outer;
+            }
+        }
+        
+        // ============================================
+        // ZOOM AND CAMERA CONTROLS
+        // ============================================
+        function calculateOptimalCameraDistance() {
+            // Calculate optimal distance based on largest frame dimension
+            // Include the vertical shafts in calculation
+            const outerSize = Math.max(
+                frameDimensions.outerLength,
+                frameDimensions.outerBreadth
+            );
+            const shaftExtension = outerSize * 0.2;  // Vertical shafts add height
+            const totalHeight = frameDimensions.outerBreadth + shaftExtension * 2;
+            const maxDim = Math.max(outerSize, totalHeight);
+            
+            // Camera distance should be ~3x the largest dimension for full view
+            return maxDim * 3.0;
+        }
+        
+        function autoFitCamera() {
+            cameraDistance = calculateOptimalCameraDistance();
+            minCameraDistance = cameraDistance * 0.25;
+            maxCameraDistance = cameraDistance * 5.0;
+            cameraAngleX = 0.45;  // Slightly lower angle
+            cameraAngleY = 0.85;
+            updateCameraPosition();
+        }
+        
+        function zoomIn() {
+            const step = cameraDistance * 0.15;  // 15% zoom
+            cameraDistance = Math.max(minCameraDistance, cameraDistance - step);
+            updateCameraPosition();
+        }
+        
+        function zoomOut() {
+            const step = cameraDistance * 0.15;  // 15% zoom
+            cameraDistance = Math.min(maxCameraDistance, cameraDistance + step);
+            updateCameraPosition();
+        }
+        
+        function resetView() {
+            autoFitCamera();
+        }
+        
+        function updateCameraPosition() {
+            if (camera) {
+                camera.position.x = cameraDistance * Math.cos(cameraAngleY) * Math.cos(cameraAngleX);
+                camera.position.y = cameraDistance * Math.sin(cameraAngleX);
+                camera.position.z = cameraDistance * Math.sin(cameraAngleY) * Math.cos(cameraAngleX);
+                camera.lookAt(0, 0, 0);
+                
+                // Update camera far plane for large scenes
+                camera.far = maxCameraDistance * 3;
+                camera.updateProjectionMatrix();
+            }
+        }
+        
+        // ============================================
+        // PAYLOAD BOX (Mounted on Inner Frame)
+        // ============================================
+        function createPayloadBox() {
+            // Remove existing payload if any
+            if (payloadMesh) {
+                if (innerFrame) innerFrame.remove(payloadMesh);
+                scene.remove(payloadMesh);
+                payloadMesh = null;
+            }
+            
+            // Create payload box (white/light gray like CAD images)
+            // 50cm x 50cm x 50cm cube centered at origin
+            const payloadGeom = new THREE.BoxGeometry(
+                payloadDimensions.x,
+                payloadDimensions.y,
+                payloadDimensions.z
+            );
+            const payloadMat = new THREE.MeshPhongMaterial({
+                color: 0xeeeeee,
+                transparent: true,
+                opacity: 0.85,
+                shininess: 60
+            });
+            payloadMesh = new THREE.Mesh(payloadGeom, payloadMat);
+            
+            // Position at absolute origin (center of system)
+            payloadMesh.position.set(0, 0, 0);
+            
+            // Add to inner frame so it rotates with the sample
+            if (innerFrame) {
+                innerFrame.add(payloadMesh);
+            }
+        }
+        
+        // ============================================
+        // CHART.JS - Multiple Charts
+        // ============================================
+        let componentsChart = null;
+        let gxData = [], gyData = [], gzData = [];
+        const maxComponentPoints = 500;
+        
+        // Sphere visualization
+        let sphereScene, sphereCamera, sphereRenderer;
+        let trajectoryPoints = [];
+        let sphereTrajectoryLine = null;
+        const maxSpherePoints = 1000;
+        
+        function initChart() {
+            const ctx = document.getElementById('gravity-chart').getContext('2d');
+            
+            gravityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '⟨g⃗⟩ Magnitude',
+                        data: [],
+                        borderColor: '#00ff9d',
+                        backgroundColor: 'rgba(0, 255, 157, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            min: 0,
+                            suggestedMax: 0.5,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#4a5568',
+                                font: { family: 'Roboto Mono', size: 10 }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+            
+            // Components Chart (like Fig 3B)
+            const ctx2 = document.getElementById('components-chart').getContext('2d');
+            componentsChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Gx',
+                            data: [],
+                            borderColor: '#ff4444',
+                            borderWidth: 1.5,
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Gy',
+                            data: [],
+                            borderColor: '#4444ff',
+                            borderWidth: 1.5,
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Gz',
+                            data: [],
+                            borderColor: '#44ff44',
+                            borderWidth: 1.5,
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            min: -1.2,
+                            max: 1.2,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#4a5568',
+                                font: { family: 'Roboto Mono', size: 9 },
+                                stepSize: 0.4
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#8899aa',
+                                font: { size: 10 },
+                                boxWidth: 20,
+                                padding: 8
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function initSphereVisualization() {
+            const canvas = document.getElementById('sphere-canvas');
+            const container = canvas.parentElement;
+            
+            sphereScene = new THREE.Scene();
+            sphereScene.background = new THREE.Color(0x0a0a12);
+            
+            sphereCamera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            sphereCamera.position.set(2, 1.5, 2);
+            sphereCamera.lookAt(0, 0, 0);
+            
+            sphereRenderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            sphereRenderer.setSize(container.clientWidth, container.clientHeight);
+            
+            // Unit sphere (wireframe)
+            const sphereGeom = new THREE.SphereGeometry(1, 24, 24);
+            const sphereMat = new THREE.MeshBasicMaterial({
+                color: 0x1a1a2e,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.3
+            });
+            const unitSphere = new THREE.Mesh(sphereGeom, sphereMat);
+            sphereScene.add(unitSphere);
+            
+            // Axes
+            const axesHelper = new THREE.AxesHelper(1.3);
+            sphereScene.add(axesHelper);
+            
+            // Labels
+            const labelPositions = [
+                { pos: [1.4, 0, 0], color: 0xff4444 },  // X
+                { pos: [0, 1.4, 0], color: 0x44ff44 },  // Y
+                { pos: [0, 0, 1.4], color: 0x4444ff }   // Z
+            ];
+            labelPositions.forEach(l => {
+                const dot = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.04, 8, 8),
+                    new THREE.MeshBasicMaterial({ color: l.color })
+                );
+                dot.position.set(...l.pos);
+                sphereScene.add(dot);
+            });
+            
+            // Initialize trajectory line with gradient-like effect
+            const trajGeom = new THREE.BufferGeometry();
+            const trajMat = new THREE.LineBasicMaterial({ 
+                color: 0x00ffcc,  // Bright cyan-green
+                linewidth: 2
+            });
+            sphereTrajectoryLine = new THREE.Line(trajGeom, trajMat);
+            sphereScene.add(sphereTrajectoryLine);
+            
+            // Current gravity point - bright magenta/pink for visibility
+            const currentPointGeom = new THREE.SphereGeometry(0.06, 16, 16);
+            const currentPointMat = new THREE.MeshBasicMaterial({ 
+                color: 0xff00ff,  // Magenta
+                transparent: true,
+                opacity: 1.0
+            });
+            window.currentGravityPoint = new THREE.Mesh(currentPointGeom, currentPointMat);
+            sphereScene.add(window.currentGravityPoint);
+            
+            // Add glow around current point
+            const glowGeom = new THREE.SphereGeometry(0.09, 16, 16);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0xff00ff,
+                transparent: true,
+                opacity: 0.3
+            });
+            window.currentPointGlow = new THREE.Mesh(glowGeom, glowMat);
+            sphereScene.add(window.currentPointGlow);
+            
+            animateSphere();
+        }
+        
+        function animateSphere() {
+            requestAnimationFrame(animateSphere);
+            // Slow rotation for better view
+            sphereCamera.position.x = 2.5 * Math.cos(Date.now() * 0.0002);
+            sphereCamera.position.z = 2.5 * Math.sin(Date.now() * 0.0002);
+            sphereCamera.lookAt(0, 0, 0);
+            sphereRenderer.render(sphereScene, sphereCamera);
+        }
+        
+        function updateSphereTrajectory(gx, gy, gz) {
+            // Add new point (normalized to unit sphere)
+            trajectoryPoints.push(new THREE.Vector3(gx, gy, gz));
+            
+            if (trajectoryPoints.length > maxSpherePoints) {
+                trajectoryPoints.shift();
+            }
+            
+            // Update line geometry
+            if (sphereTrajectoryLine && trajectoryPoints.length > 1) {
+                const positions = new Float32Array(trajectoryPoints.length * 3);
+                for (let i = 0; i < trajectoryPoints.length; i++) {
+                    positions[i * 3] = trajectoryPoints[i].x;
+                    positions[i * 3 + 1] = trajectoryPoints[i].y;
+                    positions[i * 3 + 2] = trajectoryPoints[i].z;
+                }
+                sphereTrajectoryLine.geometry.setAttribute(
+                    'position',
+                    new THREE.BufferAttribute(positions, 3)
+                );
+                sphereTrajectoryLine.geometry.attributes.position.needsUpdate = true;
+            }
+            
+            // Update current point position and glow
+            if (window.currentGravityPoint) {
+                window.currentGravityPoint.position.set(gx, gy, gz);
+            }
+            if (window.currentPointGlow) {
+                window.currentPointGlow.position.set(gx, gy, gz);
+            }
+        }
+        
+        function updateChart(gValue) {
+            gravityData.push(gValue);
+            if (gravityData.length > maxDataPoints) {
+                gravityData.shift();
+            }
+            
+            gravityChart.data.labels = gravityData.map((_, i) => i);
+            gravityChart.data.datasets[0].data = gravityData;
+            gravityChart.update('none');
+        }
+        
+        function updateComponentsChart(gx, gy, gz) {
+            gxData.push(gx);
+            gyData.push(gy);
+            gzData.push(gz);
+            
+            if (gxData.length > maxComponentPoints) {
+                gxData.shift();
+                gyData.shift();
+                gzData.shift();
+            }
+            
+            componentsChart.data.labels = gxData.map((_, i) => i);
+            componentsChart.data.datasets[0].data = gxData;
+            componentsChart.data.datasets[1].data = gyData;
+            componentsChart.data.datasets[2].data = gzData;
+            componentsChart.update('none');
+        }
+        
+        // ============================================
+        // WEBSOCKET CONNECTION
+        // ============================================
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                document.getElementById('connection-dot').classList.add('connected');
+                document.getElementById('connection-text').textContent = 'Connected';
+                document.getElementById('ws-status').textContent = 'Connected';
+                document.getElementById('ws-status').className = 'connection-status connected';
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                document.getElementById('connection-dot').classList.remove('connected');
+                document.getElementById('connection-text').textContent = 'Disconnected';
+                document.getElementById('ws-status').textContent = 'Disconnected';
+                document.getElementById('ws-status').className = 'connection-status disconnected';
+                setTimeout(connectWebSocket, 2000);
+            };
+            
+            ws.onerror = (error) => console.error('WebSocket error:', error);
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                // Check if it's connection data
+                if (data.type === 'connections') {
+                    updateConnectionsList(data.data);
+                    return;
+                }
+                
+                updateUI(data);
+            };
+        }
+        
+        function updateUI(data) {
+            // Update angles (φ and ψ from paper notation)
+            document.getElementById('phi-angle').textContent = data.phi_deg.toFixed(1) + '°';
+            document.getElementById('psi-angle').textContent = data.psi_deg.toFixed(1) + '°';
+            document.getElementById('omega-phi').textContent = data.omega_phi_rpm.toFixed(2) + ' RPM';
+            document.getElementById('omega-psi').textContent = data.omega_psi_rpm.toFixed(2) + ' RPM';
+            
+            // Velocity ratio γ = ω_φ / ω_ψ (Eq. 5)
+            const gammaVal = data.gamma !== undefined ? data.gamma : 0;
+            document.getElementById('gamma-ratio').textContent = 
+                gammaVal > 100 ? '∞' : gammaVal.toFixed(3);
+            
+            // Update 3D visualization
+            // Note: phi rotates around Z (inner), psi rotates around Y (outer)
+            updateFrameRotations(data.phi_deg, data.psi_deg);
+            
+            // Update gravity vector components (from Eq. 2)
+            updateVectorValue('gx', data.gravity_x);
+            updateVectorValue('gy', data.gravity_y);
+            updateVectorValue('gz', data.gravity_z);
+            updateVectorValue('avg-gx', data.avg_gravity_x);
+            updateVectorValue('avg-gy', data.avg_gravity_y);
+            updateVectorValue('avg-gz', data.avg_gravity_z);
+            
+            // Update metrics - mean_g is taSMG (time-averaged simulated microgravity)
+            document.getElementById('mean-g').innerHTML = 
+                data.mean_g.toFixed(4) + '<span class="main-metric-unit">g</span>';
+            document.getElementById('instant-g').textContent = data.instantaneous_g.toFixed(3);
+            document.getElementById('min-g').textContent = data.min_g.toFixed(4);
+            document.getElementById('max-g').textContent = data.max_g.toFixed(4);
+            document.getElementById('samples').textContent = data.samples.toLocaleString();
+            
+            // Color the main metric based on quality (target: 0.0018-0.0033g per Table 2)
+            const mainMetricEl = document.getElementById('mean-g');
+            if (data.mean_g < 0.005) {
+                mainMetricEl.style.color = '#00ff9d';  // Excellent - near target
+            } else if (data.mean_g < 0.02) {
+                mainMetricEl.style.color = '#00e5ff';  // Good
+            } else if (data.mean_g < 0.1) {
+                mainMetricEl.style.color = '#ffd60a';  // Fair - converging
+            } else {
+                mainMetricEl.style.color = '#ff8c00';  // Needs more time
+            }
+            
+            // Update elapsed time
+            const elapsed = data.time_elapsed;
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = Math.floor(elapsed % 60);
+            document.getElementById('elapsed').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update chart
+            updateChart(data.mean_g);
+            
+            // Update components chart (Fig 3B style)
+            updateComponentsChart(data.gravity_x, data.gravity_y, data.gravity_z);
+            
+            // Update sphere trajectory (Fig 3C style)
+            updateSphereTrajectory(data.gravity_x, data.gravity_y, data.gravity_z);
+            
+            // Update sample points gravity (for enclosure validation)
+            updateSamplePointsGravity(data.gravity_x, data.gravity_y, data.gravity_z);
+            
+            // Update running state
+            isRunning = data.status === 'running';
+            document.getElementById('main-container').classList.toggle('running', isRunning);
+            document.getElementById('motor-indicator').classList.toggle('active', isRunning);
+            
+            // Update frame dimensions display
+            frameDimensions.innerLength = data.inner_length;
+            frameDimensions.innerBreadth = data.inner_breadth;
+            frameDimensions.outerLength = data.outer_length;
+            frameDimensions.outerBreadth = data.outer_breadth;
+        }
+        
+        function updateVectorValue(id, value) {
+            const el = document.getElementById(id);
+            el.textContent = value.toFixed(3);
+            el.className = 'vector-value';
+            if (value > 0.01) el.classList.add('positive');
+            else if (value < -0.01) el.classList.add('negative');
+            else el.classList.add('zero');
+        }
+        
+        function updateConnectionsList(connections) {
+            const list = document.getElementById('connection-list');
+            // Keep the WebSocket status, add others
+            let html = `
+                <div class="connection-item">
+                    <div class="connection-info">
+                        <div class="connection-icon network">🌐</div>
+                        <div>
+                            <div class="connection-name">WebSocket</div>
+                            <div class="connection-port">ws://localhost:8080</div>
+                        </div>
+                    </div>
+                    <span class="connection-status connected" id="ws-status">Connected</span>
+                </div>
+            `;
+            
+            const icons = {
+                serial: '📡',
+                network: '🌐',
+                usb: '🔌',
+                gpio: '⚡'
+            };
+            
+            connections.forEach(conn => {
+                html += `
+                    <div class="connection-item">
+                        <div class="connection-info">
+                            <div class="connection-icon ${conn.type}">${icons[conn.type] || '🔗'}</div>
+                            <div>
+                                <div class="connection-name">${conn.device_name}</div>
+                                <div class="connection-port">${conn.port}${conn.ip_address ? ' @ ' + conn.ip_address : ''}</div>
+                            </div>
+                        </div>
+                        <span class="connection-status ${conn.status}">${conn.status}</span>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+        
+        // ============================================
+        // CONTROLS
+        // ============================================
+        function startSimulation() {
+            sendCommand({ action: 'start' });
+        }
+        
+        function stopSimulation() {
+            sendCommand({ action: 'stop' });
+        }
+        
+        function resetSimulation() {
+            sendCommand({ action: 'reset' });
+            gravityData = [];
+        }
+        
+        function sendCommand(cmd) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(cmd));
+            }
+        }
+        
+        function updateConfig() {
+            const innerRpm = parseFloat(document.getElementById('inner-rpm-input').value) || 0;
+            const outerRpm = parseFloat(document.getElementById('outer-rpm-input').value) || 0;
+            
+            // Sync slider with input
+            document.getElementById('inner-rpm-slider').value = innerRpm;
+            document.getElementById('outer-rpm-slider').value = outerRpm;
+            
+            sendCommand({
+                action: 'config',
+                inner_rpm: innerRpm,
+                outer_rpm: outerRpm
+            });
+        }
+        
+        function updateFromSlider(which) {
+            const slider = document.getElementById(which + '-rpm-slider');
+            const input = document.getElementById(which + '-rpm-input');
+            input.value = parseFloat(slider.value).toFixed(1);
+            updateConfig();
+        }
+        
+        function updatePayloadDimensions() {
+            // Get payload dimensions from inputs (cm to m)
+            const px = parseFloat(document.getElementById('payload-x').value) / 100 || 0.50;
+            const py = parseFloat(document.getElementById('payload-y').value) / 100 || 0.50;
+            const pz = parseFloat(document.getElementById('payload-z').value) / 100 || 0.50;
+            const showPayload = document.getElementById('show-payload').value === 'yes';
+            
+            // Validate payload fits inside inner frame
+            if (px >= frameDimensions.innerLength || py >= frameDimensions.innerBreadth || pz >= Math.min(frameDimensions.innerLength, frameDimensions.innerBreadth)) {
+                alert(`Payload (${(px*100).toFixed(0)}×${(py*100).toFixed(0)}×${(pz*100).toFixed(0)} cm) must be smaller than inner frame (${(frameDimensions.innerLength*100).toFixed(0)}×${(frameDimensions.innerBreadth*100).toFixed(0)} cm)!`);
+                return;
+            }
+            
+            payloadDimensions = { x: px, y: py, z: pz };
+            
+            // Recreate payload box
+            if (showPayload) {
+                createPayloadBox();
+            } else {
+                if (payloadMesh) {
+                    if (innerFrame) innerFrame.remove(payloadMesh);
+                    scene.remove(payloadMesh);
+                    payloadMesh = null;
+                }
+            }
+            
+            // Auto-fit camera to new dimensions
+            autoFitCamera();
+        }
+        
+        function updateFrameDimensions() {
+            // Get dimensions from inputs (values in cm, convert to m)
+            const innerL = parseFloat(document.getElementById('inner-length').value) / 100 || 0.80;
+            const innerB = parseFloat(document.getElementById('inner-breadth').value) / 100 || 0.80;
+            const outerL = parseFloat(document.getElementById('outer-length').value) / 100 || 1.50;
+            const outerB = parseFloat(document.getElementById('outer-breadth').value) / 100 || 1.50;
+            
+            // Validate: outer > inner > payload
+            const maxPayload = Math.max(payloadDimensions.x, payloadDimensions.y, payloadDimensions.z);
+            if (innerL <= maxPayload || innerB <= maxPayload) {
+                alert(`Inner frame must be larger than payload (${(maxPayload*100).toFixed(0)} cm)!`);
+                return;
+            }
+            if (outerL <= innerL || outerB <= innerB) {
+                alert('Outer frame must be larger than inner frame!');
+                return;
+            }
+            
+            frameDimensions = {
+                innerLength: innerL,
+                innerBreadth: innerB,
+                outerLength: outerL,
+                outerBreadth: outerB
+            };
+            
+            // Recreate 3D frames
+            createFrames();
+            
+            // Auto-fit camera to new dimensions
+            autoFitCamera();
+            
+            sendCommand({
+                action: 'frame_dimensions',
+                inner_length: innerL,
+                inner_breadth: innerB,
+                outer_length: outerL,
+                outer_breadth: outerB
+            });
+        }
+        
+        function updateAxisInclination() {
+            const innerTilt = parseFloat(document.getElementById('inner-tilt').value) || 0;
+            const outerTilt = parseFloat(document.getElementById('outer-tilt').value) || 0;
+            
+            // Set TARGET tilt for smooth transition (not immediate)
+            targetTilt.inner = innerTilt;
+            targetTilt.outer = outerTilt;
+            
+            // Send to server for physics calculation
+            sendCommand({
+                action: 'axis_inclination',
+                inner_tilt: innerTilt,
+                outer_tilt: outerTilt
+            });
+        }
+        
+        function scanConnections() {
+            sendCommand({ action: 'scan_connections' });
+        }
+        
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        document.getElementById('inner-rpm-input').addEventListener('change', updateConfig);
+        document.getElementById('outer-rpm-input').addEventListener('change', updateConfig);
+        document.getElementById('inner-rpm-slider').addEventListener('input', () => updateFromSlider('inner'));
+        document.getElementById('outer-rpm-slider').addEventListener('input', () => updateFromSlider('outer'));
+        
+        // ============================================
+        // TIMESTAMP
+        // ============================================
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('timestamp').textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateTimestamp, 1000);
+        
+        // ============================================
+        // INIT
+        // ============================================
+        window.addEventListener('load', () => {
+            init3D();
+            initChart();
+            initSphereVisualization();
+            connectWebSocket();
+            updateTimestamp();
+            
+            // Auto-fit camera to show entire RPM on load
+            setTimeout(() => {
+                autoFitCamera();
+            }, 100);
+            
+            // Initial connection scan after delay
+            setTimeout(scanConnections, 1000);
+        });
+    </script>
+</body>
+</html>

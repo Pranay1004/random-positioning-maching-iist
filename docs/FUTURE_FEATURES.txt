@@ -1,0 +1,259 @@
+================================================================================
+                    RPM DIGITAL TWIN - FUTURE FEATURES ROADMAP
+================================================================================
+Document Created: 15 January 2026
+Last Updated: 15 January 2026
+Current Version: v3.0.0
+
+This document tracks ideas and planned features for future implementation.
+When implemented, update the "Status" field with the version number.
+
+================================================================================
+                              MECHANICAL COMPONENTS
+================================================================================
+
+FEATURE: Base Plate Assembly (Fig 4D, 4H)
+────────────────────────────────────────────────────────────────────────────────
+Priority: Medium
+Status: PLANNED
+Description:
+  - Flat rectangular base plate (shown in Fig 4H)
+  - Provides mounting surface for A-frame stands
+  - Material visualization: aluminum/steel appearance
+  - Dimensions should be proportional to outer frame (~2x outer frame width)
+CAD Reference: Fig 4D (Base Sub-Assembly), Fig 4H (CAD of Base Plate)
+Notes:
+  - Consider adding rubber feet/mounting holes for realism
+
+
+FEATURE: A-Frame Support Stands (Fig 4D, 4E)
+────────────────────────────────────────────────────────────────────────────────
+Priority: Medium  
+Status: PLANNED
+Description:
+  - Two triangular A-frame stands on opposite sides of base plate
+  - Support the outer frame via bearings at top
+  - Angled legs for stability
+  - Motor mount points on top of A-frames
+CAD Reference: Fig 4D (Base Sub-Assembly), Fig 4E (Model of Stand)
+Notes:
+  - These hold the outer motor and outer frame vertical shafts
+
+
+FEATURE: Motor Housing/Mounts
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Visible motor housings on A-frame tops (outer motor)
+  - Motor housing on outer frame for inner motor
+  - NEMA stepper motor representation
+  - Belt/coupling visualization (optional)
+Notes:
+  - Consider adding motor specs display (NEMA 17/23/34)
+
+
+FEATURE: Bearing Housings
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Cylindrical bearing housings at rotation pivot points
+  - Top/bottom of outer frame vertical shafts
+  - Left/right of inner frame horizontal shafts
+  - Flanged bearing appearance
+Notes:
+  - Small detail but adds mechanical realism
+
+
+================================================================================
+                              CONNECTION GEOMETRY
+================================================================================
+
+FEATURE: Outer Frame Vertical Shafts (Fig 4F, 5A)
+────────────────────────────────────────────────────────────────────────────────
+Priority: HIGH
+Status: IMPLEMENTED - v3.1.0
+Description:
+  - Vertical cylindrical shafts extending from top and bottom of outer frame
+  - These are the rotation axis for outer motor (ψ rotation around Y-axis)
+  - Connect outer frame to A-frame stands via bearings
+CAD Reference: Fig 4F (Outer Frame Sub-Assembly), Fig 5A
+Implementation Notes:
+  - Use THREE.CylinderGeometry for shafts
+  - Position at center-top and center-bottom of outer frame
+  - Shaft length ~15-20% of outer frame height
+
+
+FEATURE: Inner-to-Outer Frame Horizontal Bars (Fig 4I, 5C)
+────────────────────────────────────────────────────────────────────────────────
+Priority: HIGH
+Status: IMPLEMENTED - v3.1.0
+Description:
+  - Two horizontal cylindrical bars connecting inner frame to outer frame
+  - These are the rotation axis for inner motor (φ rotation around Z-axis)
+  - Positioned on left and right sides of inner frame
+CAD Reference: Fig 4I (Inner Frame Sub-Assembly), Fig 5C
+Implementation Notes:
+  - Use THREE.CylinderGeometry rotated 90° (along Z-axis)
+  - Connect from inner frame edge to outer frame inner edge
+  - Bar diameter proportional to frame size
+
+
+================================================================================
+                              UI/UX ENHANCEMENTS
+================================================================================
+
+FEATURE: Frame Thickness Control
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Allow users to adjust frame tube/bar thickness
+  - Affects both visual appearance and structural calculations
+Notes:
+  - Currently using fixed tube radius
+
+
+FEATURE: Material Selection
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Dropdown to select frame material (Aluminum, Steel, Carbon Fiber)
+  - Affects visual appearance (color/reflectivity)
+  - Could tie into weight/inertia calculations
+Notes:
+  - Nice-to-have for educational purposes
+
+
+FEATURE: Exploded View Mode
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Toggle to show RPM in exploded assembly view
+  - Helps users understand component relationships
+  - Animated transition between normal and exploded
+Notes:
+  - Similar to CAD software exploded view feature
+
+
+FEATURE: Component Highlighting
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Hover/click on components to highlight and show info
+  - Display component name, dimensions, role
+  - Educational tooltip system
+Notes:
+  - Useful for presentations and teaching
+
+
+================================================================================
+                              PHYSICS ENHANCEMENTS
+================================================================================
+
+FEATURE: Centrifugal Force Visualization
+────────────────────────────────────────────────────────────────────────────────
+Priority: Medium
+Status: PLANNED
+Description:
+  - Show centrifugal acceleration vectors at sample points
+  - Different from gravity vector - depends on position and angular velocity
+  - Color-coded arrows showing magnitude
+Notes:
+  - Important for understanding why position matters in RPM
+
+
+FEATURE: Vibration Analysis
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Model mechanical vibrations based on speed and imbalance
+  - Frequency spectrum display
+  - Warning indicators for resonance conditions
+Notes:
+  - Advanced feature for mechanical engineering users
+
+
+FEATURE: Torque/Power Calculations
+────────────────────────────────────────────────────────────────────────────────
+Priority: Medium
+Status: PLANNED
+Description:
+  - Calculate required motor torque based on payload mass
+  - Estimate power consumption
+  - Motor sizing recommendations
+Notes:
+  - Useful for actual RPM construction
+
+
+================================================================================
+                              DATA & EXPORT
+================================================================================
+
+FEATURE: Session Recording & Playback
+────────────────────────────────────────────────────────────────────────────────
+Priority: Medium
+Status: PLANNED
+Description:
+  - Record simulation sessions with timestamps
+  - Playback at variable speeds
+  - Export recording as video or data file
+Notes:
+  - Useful for presentations and documentation
+
+
+FEATURE: 3D Model Export (STL/GLTF)
+────────────────────────────────────────────────────────────────────────────────
+Priority: Low
+Status: PLANNED
+Description:
+  - Export current 3D model as STL for 3D printing
+  - Export as GLTF for use in other 3D applications
+Notes:
+  - Would allow physical model creation
+
+
+FEATURE: Configuration Profiles
+────────────────────────────────────────────────────────────────────────────────
+Priority: Medium
+Status: PLANNED
+Description:
+  - Save/load complete RPM configurations
+  - Preset profiles for common setups
+  - Share configurations via JSON export
+Notes:
+  - Useful for comparing different RPM designs
+
+
+================================================================================
+                              VERSION HISTORY
+================================================================================
+
+v3.1.0 (15 Jan 2026)
+  - Added outer frame vertical shafts
+  - Added inner-to-outer horizontal connection bars
+  - Fixed auto-zoom to fit entire RPM on load
+  - Added payload dimension controls
+
+v3.0.0 (14 Jan 2026)
+  - Paper-accurate physics (Eq. 2 rotation matrices)
+  - 3D box frame visualization
+  - Gravity components chart
+  - Sphere trajectory visualization
+  - HardwareCommandQueue for robust backend
+
+v2.0.0 (13 Jan 2026)
+  - FastAPI WebSocket server
+  - SpaceX/Tesla-style dark theme dashboard
+  - Real-time simulation at 50Hz
+
+v1.0.0 (12 Jan 2026)
+  - Initial prototype
+  - Basic simulation engine
+
+================================================================================

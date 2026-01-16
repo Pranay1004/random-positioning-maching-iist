@@ -1,0 +1,358 @@
+================================================================================
+                    RPM DIGITAL TWIN - QUICK START GUIDE
+================================================================================
+
+Project: Random Positioning Machine (RPM) Digital Twin Simulator
+Version: 3.1.1
+Institution: Department of Aerospace Engineering, IIST
+License: MIT
+Date: January 2026
+
+================================================================================
+                                WHAT IS SAMPLE?
+================================================================================
+
+SAMPLE - A Critical Metric for Physics Convergence
+
+In the RPM simulator, "SAMPLE" refers to the number of data points collected
+during the rotational motion calculations. This is fundamental to understanding
+the accuracy and convergence of the simulated microgravity metrics.
+
+What the SAMPLE metric represents:
+  1. COUNT of position/velocity measurements collected during rotation
+  2. WINDOWS of time-averaged gravity calculations performed
+  3. CONVERGENCE indicator - higher samples = more accurate measurements
+  4. QUALITY metric - shows when physics has "settled" to stable values
+
+Why SAMPLE matters:
+  • Low samples: Physics values still changing, measurement unstable
+  • High samples: Physics converged to stable state, measurement reliable
+  • 100+ samples: Generally indicates converged results
+  • 300+ samples: Very high confidence in measured metrics
+
+Real-world analogy:
+  When you take a photo in dim light:
+    • 1 photo: Blurry, noisy
+    • 10 photos: Getting clearer
+    • 100 photos: Clear, stable image
+  SAMPLE is like averaging 100 photos to get a clear measurement.
+
+Dashboard location:
+  The "Samples" counter appears in the web UI alongside these metrics:
+    • taSMG (time-averaged gravity magnitude) - depends on samples
+    • Time-averaged X, Y, Z accelerations
+    • Rotation rate feedback
+  
+How it's calculated:
+  For each 50Hz physics update:
+    1. Calculate current rotation matrix
+    2. Compute gravity components in rotating frame
+    3. Average these values over a time window
+    4. Increment SAMPLE counter
+    5. When SAMPLE is high enough, metrics are stable
+
+What to do with SAMPLE information:
+  • Running simulations: Watch SAMPLE increase
+  • SAMPLE < 50: Physics still converging, results preliminary
+  • SAMPLE 50-200: Good stability, typical for analysis
+  • SAMPLE > 200: Excellent stability, use for publication
+  • Reset: SAMPLE counter resets when motor speeds change
+
+In the code:
+  SAMPLE is tracked in the rotational_history window. It represents:
+    samples_count = len(rotational_history)
+    
+This is used to ensure the time-averaged gravity calculations are based on
+sufficient data, typically requiring 50+ samples for acceptable accuracy.
+
+
+================================================================================
+                              INSTALLATION
+================================================================================
+
+Prerequisites:
+  • Python 3.9+
+  • pip (Python package manager)
+  • Modern web browser (Chrome, Firefox, Safari, Edge)
+
+Step 1: Clone Repository
+  git clone https://github.com/Pranay1004/random-positioning-machine-iist.git
+  cd rpm
+
+Step 2: Create Virtual Environment
+  python -m venv venv
+  source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+Step 3: Install Dependencies
+  pip install -r requirements.txt
+  pip install -r requirements-visualization.txt
+
+Step 4: Run the Server
+  python src/main.py
+
+Step 5: Open in Browser
+  Go to: http://localhost:8080
+
+You should see the 3D simulator with real-time visualization.
+
+
+================================================================================
+                              QUICK START
+================================================================================
+
+1. Start the simulator (see Installation above)
+
+2. In the web interface, you'll see:
+   - 3D visualization of the RPM on the left
+   - Control panel on the right
+   - Dashboard with metrics at bottom
+
+3. Try these actions:
+   - Increase "Outer Motor Speed": Watch frame rotate in 3D
+   - Increase "Inner Motor Speed": Watch second rotation start
+   - Watch "taSMG" value: Shows simulated gravity vector
+   - Watch "Samples": Increases with each measurement, shows convergence
+
+4. Understanding the metrics:
+   - taSMG: Time-averaged gravity magnitude (should be ~1.0 in no-gravity)
+   - Samples: Number of measurements collected (higher = more accurate)
+   - X/Y/Z: Gravity components in rotating frame
+   - Rotation rates: Angular velocity of each frame
+
+5. For details, see docs/ folder:
+   - docs/README.txt - Comprehensive documentation
+   - docs/formulas.txt - All equations explained
+   - docs/SAMPLES_METRIC_EXPLAINED.txt - Deep dive on SAMPLE metric
+
+
+================================================================================
+                            KEY FEATURES
+================================================================================
+
+Real-time Physics Engine:
+  • 50 Hz physics update rate
+  • 20 Hz 3D visualization
+  • Paper-accurate calculations based on Yotov et al. research
+  • Microgravity simulation for two-axis rotation
+
+Interactive 3D Visualization:
+  • Rotate view with mouse
+  • Zoom in/out
+  • Real-time updates of rotating frames
+  • Color-coded axes (Red=X, Green=Y, Blue=Z)
+
+Live Metrics Dashboard:
+  • Time-averaged specific microgravity (taSMG)
+  • Gravity components (Gx, Gy, Gz)
+  • Sample convergence indicator
+  • Motor speed readout
+
+Control Panel:
+  • Adjustable frame dimensions
+  • Variable motor speeds for both axes
+  • Real-time feedback
+
+Data Logging (optional):
+  • Export rotation data
+  • Export calculated gravity vectors
+  • For research and validation
+
+
+================================================================================
+                          PHYSICS ACCURACY
+================================================================================
+
+The simulator implements the exact physics described in:
+
+"A New Random Positioning Machine Modification Applied for Microgravity
+Simulation in Laboratory Experiments with Rats"
+- Yotov et al.
+
+Key equations implemented:
+  1. Rotation matrices for two-axis gimbal rotation
+  2. Time-averaged gravity in rotating frame
+  3. Specific microgravity (taSMG) calculations
+  4. Centripetal acceleration components
+  5. Coriolis force effects (v3.2.0+)
+
+For complete equations, see: docs/formulas.txt
+
+
+================================================================================
+                         WHAT'S IN EACH FOLDER
+================================================================================
+
+Root directory:
+  README.txt - This file
+  README.md - Quick overview for GitHub
+  LICENSE - MIT License
+  DISCLAIMER.md - Legal information
+  requirements.txt - Python dependencies
+  setup.sh - Setup script
+
+src/:
+  main.py - Main application entry point
+  physics_engine.py - RPM physics calculations
+  websocket_server.py - Real-time data streaming
+  3D rendering - Three.js visualization
+
+docs/:
+  README.txt - Comprehensive user guide
+  formulas.txt - Complete physics equations
+  MATLAB_ANALYSIS.txt - MATLAB comparison
+  REFERENCES.txt - Research citations
+  SAMPLES_METRIC_EXPLAINED.txt - SAMPLE metric deep dive
+  TASMG_FIX_EXPLANATION.md - Physics fix details
+  CAD_REFERENCE.txt - Component geometry reference
+  FUTURE_FEATURES.txt - Planned features
+  STATUS.md - Version history
+  INDEX.txt - Documentation index
+
+tests/:
+  Unit tests for physics calculations
+  Integration tests for web interface
+
+
+================================================================================
+                            TROUBLESHOOTING
+================================================================================
+
+Server won't start:
+  ✓ Check Python version: python --version (need 3.9+)
+  ✓ Verify dependencies: pip list | grep -E "fastapi|numpy|scipy"
+  ✓ Check port 8080 is free: lsof -i :8080
+  ✓ Try different port: python src/main.py --port 8000
+
+Browser shows blank page:
+  ✓ Check console for errors: F12 → Console tab
+  ✓ Clear browser cache: Ctrl+Shift+Delete
+  ✓ Try different browser (Chrome recommended)
+  ✓ Check WebSocket connection: Look for "WebSocket" in browser console
+
+Physics values look wrong:
+  ✓ Verify research paper: See REFERENCES.txt
+  ✓ Check sample count: Must be > 50 for stability
+  ✓ Reset simulation: Refresh browser page
+  ✓ Review formulas: See docs/formulas.txt
+
+Performance issues:
+  ✓ Lower visualization FPS: Adjust in config
+  ✓ Reduce monitor resolution temporarily
+  ✓ Close other applications
+  ✓ Update GPU drivers
+
+
+================================================================================
+                          NEXT STEPS
+================================================================================
+
+For Users:
+  1. Run the simulator (Quick Start above)
+  2. Experiment with motor speeds
+  3. Observe how taSMG changes with rotation
+  4. Read docs/formulas.txt for physics details
+
+For Developers:
+  1. Read src/physics_engine.py for algorithm details
+  2. Review MATLAB_ANALYSIS.txt for feature roadmap
+  3. Check docs/TASMG_FIX_EXPLANATION.md for recent improvements
+  4. Look at tests/ folder for testing examples
+
+For Researchers:
+  1. Export data from simulator for validation
+  2. Compare with MATLAB reference implementation
+  3. See docs/REFERENCES.txt for paper citation
+  4. Contact: GitHub Issues page
+
+
+================================================================================
+                          LEGAL INFORMATION
+================================================================================
+
+License: MIT License
+  • Free to use, modify, and distribute
+  • See LICENSE file for full text
+  • Commercial use permitted
+  • Must include copyright notice
+
+AI-Generated Code:
+  • Developed with assistance from AI tools
+  • ~80% AI-generated, ~20% human-directed
+  • Full disclosure in DISCLAIMER.md
+  • No AI tools in final binary
+
+Warranty:
+  • NO WARRANTY - Use at your own risk
+  • For research purposes only
+  • See DISCLAIMER.md for full legal terms
+
+Attribution:
+  • Citation: Yotov et al. research paper
+  • Credit: Department of Aerospace Engineering, IIST
+  • See REFERENCES.txt for complete attributions
+
+
+================================================================================
+                        SUPPORT & DOCUMENTATION
+================================================================================
+
+Web-based simulator:
+  Open: http://localhost:8080
+  Port: 8080 (configurable)
+  Server: http://localhost:8080/api
+
+Documentation:
+  Main guide: docs/README.txt
+  Physics: docs/formulas.txt
+  SAMPLE metric: docs/SAMPLES_METRIC_EXPLAINED.txt
+  Features: docs/FUTURE_FEATURES.txt
+  Index: docs/INDEX.txt
+
+Research:
+  Paper reference: REFERENCES.txt
+  CAD models: docs/CAD_REFERENCE.txt
+  MATLAB comparison: docs/MATLAB_ANALYSIS.txt
+  Fix summary: docs/TASMG_FIX_SUMMARY.txt
+
+Development:
+  Issues: GitHub Issues page
+  Code: src/ folder
+  Tests: tests/ folder
+
+
+================================================================================
+                          VERSION HISTORY
+================================================================================
+
+v3.1.1 (Current)
+  ✓ Fixed taSMG recovery with adaptive history management
+  ✓ Reorganized documentation
+  ✓ Added SAMPLE metric explanation
+  ✓ Updated to IIST department licensing
+
+v3.1.0
+  ✓ Initial physics engine implementation
+  ✓ WebSocket server for real-time updates
+  ✓ 3D visualization with Three.js
+  ✓ Live metrics dashboard
+
+For complete history, see: docs/STATUS.md
+
+
+================================================================================
+                          THANK YOU
+================================================================================
+
+This project represents research into microgravity simulation using Random
+Positioning Machines. Thank you for using the RPM Digital Twin simulator.
+
+Questions? See the documentation index:
+  docs/INDEX.txt - Navigation guide for all documentation
+  docs/REFERENCES.txt - Complete source citations
+  DISCLAIMER.md - Legal and licensing information
+
+For updates and issues: GitHub repository
+
+
+================================================================================
+Document Last Updated: January 16, 2026

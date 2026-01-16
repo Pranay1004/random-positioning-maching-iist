@@ -1,0 +1,90 @@
+# RPM Digital Twin - Requirements
+# Version: 1.0.0
+# Platform: macOS (Apple Silicon M4) + Windows 11
+
+# =============================================================================
+# CORE SCIENTIFIC COMPUTING
+# =============================================================================
+numpy>=1.26.0
+scipy>=1.12.0
+pandas>=2.2.0
+sympy>=1.12
+
+# =============================================================================
+# REAL-TIME DATA PROCESSING
+# =============================================================================
+pyserial>=3.5
+pyserial-asyncio>=0.6
+python-can>=4.3.0
+smbus2>=0.4.3  # I2C communication
+spidev>=3.6; sys_platform == "linux"    # SPI communication (Linux/RPi) - Linux-only
+
+# =============================================================================
+# DATA STORAGE & STREAMING
+# =============================================================================
+influxdb-client>=1.40.0
+psycopg2-binary>=2.9.9
+redis>=5.0.0
+grpcio>=1.60.0
+grpcio-tools>=1.60.0
+protobuf>=4.25.0
+
+# =============================================================================
+# VISUALIZATION
+# =============================================================================
+matplotlib>=3.8.0
+plotly>=5.18.0
+pyqtgraph>=0.13.0
+
+# VTK (optional - large native dependency, may not have wheels for newer Python)
+# If you need advanced 3D rendering, install the visualization extras:
+#   pip install -r requirements-visualization.txt
+
+# =============================================================================
+# MATLAB INTEGRATION
+# =============================================================================
+# matlabengine is provided by MathWorks and must be installed via MATLAB's
+# `extern/engines/python` installer (not available on PyPI). Keep as optional.
+# To install if you have MATLAB: run the installer in your MATLAB distribution:
+#   cd /path/to/matlab/extern/engines/python
+#   python -m pip install .
+
+# =============================================================================
+# ASYNC & NETWORKING
+# =============================================================================
+asyncio>=3.4.3
+aiohttp>=3.9.0
+websockets>=12.0
+fastapi>=0.109.0
+uvicorn>=0.27.0
+
+# =============================================================================
+# CONFIGURATION & UTILITIES
+# =============================================================================
+pyyaml>=6.0.1
+python-dotenv>=1.0.0
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+rich>=13.7.0  # Beautiful terminal output
+typer>=0.9.0  # CLI framework
+
+# =============================================================================
+# TESTING
+# =============================================================================
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+hypothesis>=6.98.0
+
+# =============================================================================
+# LOGGING & MONITORING
+# =============================================================================
+loguru>=0.7.2
+prometheus-client>=0.19.0
+
+# =============================================================================
+# BUILD & PACKAGING
+# =============================================================================
+pyinstaller>=6.3.0
+setuptools>=69.0.0
+wheel>=0.42.0

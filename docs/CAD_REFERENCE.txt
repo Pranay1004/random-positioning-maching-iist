@@ -1,0 +1,172 @@
+================================================================================
+                    RPM DIGITAL TWIN - CAD REFERENCE DOCUMENTATION
+================================================================================
+Document Created: 15 January 2026
+
+This document describes the CAD design reference images and their components
+for implementing accurate 3D visualization in the Digital Twin software.
+
+================================================================================
+                              FIGURE REFERENCE INDEX
+================================================================================
+
+Fig 4A  : CAD of the Complete Assembly
+Fig 4D  : Base Sub-Assembly  
+Fig 4E  : Model of Stand (A-Frame)
+Fig 4F  : CAD Outer Frame Sub-Assembly
+Fig 4G  : CAD of the Outer Frame
+Fig 4H  : CAD of the Base Plate
+Fig 4I  : Inner Frame Sub-Assembly
+Fig 4L  : CAD of the Inner Frame
+Fig 5A  : CAD of Parts rotated by Outer motors (front view)
+Fig 5C  : CAD of Parts rotated by Outer motors (side view)
+
+================================================================================
+                              COMPONENT HIERARCHY
+================================================================================
+
+COMPLETE ASSEMBLY (Fig 4A)
+│
+├── BASE ASSEMBLY
+│   ├── Base Plate (Fig 4H)
+│   │   └── Flat rectangular plate
+│   │   └── Mounting holes for A-frames
+│   │
+│   └── A-Frame Stands x2 (Fig 4D, 4E)
+│       └── Triangular support structure
+│       └── Motor mount at apex
+│       └── Bearing housing for outer shaft
+│
+├── OUTER FRAME ASSEMBLY (Fig 4F, 4G)
+│   ├── Outer Frame (rectangular)
+│   │   └── Dimensions: 150cm x 150cm (default)
+│   │   └── Square cross-section tubing
+│   │
+│   ├── Vertical Shafts x2 (top & bottom)
+│   │   └── Cylindrical rods for Y-axis rotation
+│   │   └── Connect to A-frame bearings
+│   │   └── Outer motor drives top shaft
+│   │
+│   └── Inner Motor Mount
+│       └── Positioned on outer frame side
+│       └── Drives inner frame rotation
+│
+└── INNER FRAME ASSEMBLY (Fig 4I, 4L)
+    ├── Inner Frame (rectangular)
+    │   └── Dimensions: 80cm x 80cm (default)
+    │   └── Square cross-section tubing
+    │   └── Smaller than outer frame
+    │
+    ├── Horizontal Connection Bars x2 (left & right)
+    │   └── Cylindrical rods for Z-axis rotation
+    │   └── Connect inner frame to outer frame
+    │   └── Inner motor drives one bar
+    │
+    └── Payload Mount
+        └── Sample holder in center
+        └── Default: 50cm x 50cm x 50cm cube
+
+================================================================================
+                              ROTATION AXES
+================================================================================
+
+OUTER MOTOR ROTATION (ψ - Psi)
+────────────────────────────────────────────────────────────────────────────────
+Axis: Y-axis (vertical)
+Components rotated: Outer frame + Inner frame + Payload (everything)
+Pivot points: Top and bottom vertical shafts
+Motor location: Top of A-frame stand
+
+
+INNER MOTOR ROTATION (φ - Phi)  
+────────────────────────────────────────────────────────────────────────────────
+Axis: Z-axis (horizontal, perpendicular to outer axis)
+Components rotated: Inner frame + Payload only
+Pivot points: Left and right horizontal connection bars
+Motor location: On outer frame (drives one horizontal bar)
+
+================================================================================
+                              DIMENSIONAL RELATIONSHIPS
+================================================================================
+
+Standard Proportions (based on CAD images):
+─────────────────────────────────────────────────────────────────────────────────
+
+Payload (innermost):
+  - Default: 50cm × 50cm × 50cm
+  - Must fit inside inner frame with clearance
+
+Inner Frame:
+  - Default: 80cm × 80cm  
+  - Must be larger than payload
+  - Gap from payload: ~15cm per side
+
+Outer Frame:
+  - Default: 150cm × 150cm
+  - Must be larger than inner frame
+  - Gap from inner frame: ~35cm per side
+
+Vertical Shafts (outer frame):
+  - Length: ~20% of outer frame height
+  - Diameter: ~5% of outer frame width
+  - Position: Center top and center bottom
+
+Horizontal Bars (inner-outer connection):
+  - Length: Gap between inner and outer frame
+  - Diameter: ~5% of inner frame width
+  - Position: Center left and center right of inner frame
+
+Base Plate:
+  - Width: ~2× outer frame width
+  - Depth: ~1.5× outer frame depth
+  - Sits below entire assembly
+
+A-Frame Stands:
+  - Height: ~1.2× outer frame height (to clear top)
+  - Base width: ~40% of base plate width
+  - Positioned at left and right edges
+
+================================================================================
+                              IMPLEMENTATION NOTES
+================================================================================
+
+THREE.JS GEOMETRY SUGGESTIONS:
+
+Frames (Inner/Outer):
+  - Use THREE.BufferGeometry with custom vertices for thick tubes
+  - OR use THREE.TubeGeometry along rectangular path
+  - Current: THREE.LineSegments with EdgesGeometry (wireframe look)
+
+Shafts/Bars:
+  - THREE.CylinderGeometry
+  - Rotation: rotateX(Math.PI/2) for horizontal bars
+
+Payload Box:
+  - THREE.BoxGeometry with MeshPhongMaterial
+  - Semi-transparent to see enclosure inside
+
+Base Plate:
+  - THREE.BoxGeometry (thin, wide)
+  - MeshStandardMaterial with metallic look
+
+A-Frame:
+  - Custom geometry OR multiple BoxGeometry pieces
+  - Triangular profile when viewed from front
+
+================================================================================
+                              COLOR SCHEME
+================================================================================
+
+Current Implementation:
+  - Inner Frame: Purple (#bf5af2) 
+  - Outer Frame: Cyan (#00e5ff)
+  - Payload: Light gray (#eeeeee), semi-transparent
+  - Enclosure: Green wireframe (#00ff9d)
+  - Shafts/Bars: Silver/gray metallic
+  - Background: Near black (#050508)
+
+CAD Original Colors:
+  - All components: Silver/aluminum gray
+  - Background: Dark blue-gray (#3d4654)
+
+================================================================================

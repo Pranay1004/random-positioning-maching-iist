@@ -1,0 +1,545 @@
+================================================================================
+                   RPM DIGITAL TWIN - COMPLETE FORMULA REFERENCE
+================================================================================
+Last Updated: 16 January 2026
+Version: 3.1.0
+
+This document contains ALL formulas, variables, and their definitions used in
+the RPM Digital Twin physics engine and dashboard visualization.
+
+================================================================================
+                    SECTION 1: CORE PHYSICS EQUATIONS
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1.1 COORDINATE SYSTEM TRANSFORMATION (Equation 2 from Research Paper)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The gravity vector in the SAMPLE FRAME is obtained by transforming the
+gravity vector from the LAB FRAME through two rotation matrices:
+
+    g_sample = R_Z(φ) · R_Y(ψ) · g_lab
+
+Where:
+    g_lab = [0, -1, 0]ᵀ        (gravity in lab frame, pointing down)
+    φ (phi) = Inner frame angle (rad)
+    ψ (psi) = Outer frame angle (rad)
+
+
+ROTATION MATRIX R_Y(ψ) - Outer Frame Rotation (around Y-axis):
+───────────────────────────────────────────────────────────────────────────────
+
+    R_Y(ψ) = │ cos(ψ)   0   sin(ψ) │
+             │   0      1      0    │
+             │-sin(ψ)   0   cos(ψ) │
+
+Rotates the outer frame around the Y-axis (vertical) by angle ψ.
+This is controlled by the OUTER MOTOR.
+
+
+ROTATION MATRIX R_Z(φ) - Inner Frame Rotation (around Z-axis):
+───────────────────────────────────────────────────────────────────────────────
+
+    R_Z(φ) = │ cos(φ)  -sin(φ)  0 │
+             │ sin(φ)   cos(φ)  0 │
+             │   0        0      1 │
+
+Rotates the inner frame around the Z-axis (horizontal) by angle φ.
+This is controlled by the INNER MOTOR.
+
+
+RESULTING GRAVITY COMPONENTS:
+────────────────────────────────────────────────────────────────────────────────
+
+After applying both rotation matrices to g_lab = [0, -1, 0]ᵀ:
+
+    Gx(φ, ψ) = -sin(φ)·cos(ψ)
+    Gy(φ, ψ) = -cos(φ)
+    Gz(φ, ψ) = sin(φ)·sin(ψ)
+
+Or in vector form:
+    g_sample = [Gx, Gy, Gz]ᵀ
+
+CRITICAL PROPERTY: ||g_sample|| = √(Gx² + Gy² + Gz²) = 1 ALWAYS
+                   (Magnitude is constant, only direction changes)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1.2 ANGLE INTEGRATION (Kinematics)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The angles φ and ψ evolve over time based on motor angular velocities:
+
+    φ(t) = φ(t-1) + ω_φ · Δt
+    ψ(t) = ψ(t-1) + ω_ψ · Δt
+
+Where:
+    ω_φ = Angular velocity of inner motor (rad/s)
+    ω_ψ = Angular velocity of outer motor (rad/s)
+    Δt = Time step (0.02 seconds for 50Hz simulation)
+
+Example calculation at iteration i=2:
+    If φ(i-1) = 0.0 rad, ω_φ = 2.0 RPM = 0.2094 rad/s, Δt = 0.02 s
+    Then φ(i) = 0.0 + 0.2094 × 0.02 = 0.004188 rad ≈ 0.24°
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1.3 VELOCITY RATIO (Velocity Synchronization Parameter)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    γ (gamma) = ω_φ / ω_ψ = (Inner RPM) / (Outer RPM)
+
+Where:
+    γ ≈ 1.0 is optimal
+    γ should be irrational (non-repeating) for best coverage
+    Common values: 2.0/2.1, 1.0/1.05, etc.
+
+Example:
+    If Inner Motor = 2.0 RPM and Outer Motor = 2.0 RPM
+    Then γ = 2.0 / 2.0 = 1.0
+
+
+================================================================================
+                 SECTION 2: GRAVITY AVERAGING & CONVERGENCE
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.1 TIME-AVERAGED GRAVITY COMPONENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The instantaneous gravity components oscillate between -1 and +1.
+We compute their TIME AVERAGE over all samples collected so far:
+
+    ⟨Gx⟩ = (1/N) · Σ(i=1 to N) Gx(i)
+    ⟨Gy⟩ = (1/N) · Σ(i=1 to N) Gy(i)
+    ⟨Gz⟩ = (1/N) · Σ(i=1 to N) Gz(i)
+
+Where:
+    N = total number of samples
+    ⟨·⟩ = time average operator
+    Gx(i), Gy(i), Gz(i) = gravity components at sample i
+
+Example at N=1000 samples:
+    ⟨Gx⟩ = (Gx₁ + Gx₂ + ... + Gx₁₀₀₀) / 1000
+
+INTERPRETATION:
+    - If ⟨Gx⟩ ≈ 0, the gravity X-component averages to near-zero (GOOD)
+    - If ⟨Gx⟩ ≈ 0.5, the gravity X-component is biased (BAD)
+    - All three should be close to zero for good microgravity
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.2 G* (taSMG) - TIME-AVERAGED SIMULATED MICROGRAVITY (MOST IMPORTANT METRIC)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+G* is the magnitude of the time-averaged gravity vector:
+
+    G* = ||⟨g⃗⟩|| = √(⟨Gx⟩² + ⟨Gy⟩² + ⟨Gz⟩²)
+
+This is THE KEY METRIC for RPM quality. It tells you how close to perfect
+microgravity you are.
+
+Example calculation:
+    If at N=10,000 samples:
+        ⟨Gx⟩ = 0.0012 g
+        ⟨Gy⟩ = -0.0018 g
+        ⟨Gz⟩ = 0.0008 g
+    
+    Then: G* = √(0.0012² + 0.0018² + 0.0008²)
+           = √(1.44×10⁻⁶ + 3.24×10⁻⁶ + 0.64×10⁻⁶)
+           = √(5.32×10⁻⁶)
+           = 0.00231 g
+
+
+⚠️  CRITICAL DISTINCTION - THE MOST COMMON MISTAKE:
+
+    WRONG FORMULA (DO NOT USE):
+        ⟨||g⃗||⟩ = (1/N) · Σ(√(Gx² + Gy² + Gz²))
+        This averages the MAGNITUDES (which is always ~1)
+        Result: Always ≈ 1.0 g (MEANINGLESS)
+    
+    CORRECT FORMULA (USE THIS):
+        ||⟨g⃗⟩|| = √((⟨Gx⟩)² + (⟨Gy⟩)² + (⟨Gz⟩)²)
+        This takes MAGNITUDE of AVERAGED VECTOR
+        Result: Close to 0 for good microgravity (CORRECT)
+
+
+TARGET VALUES (from research literature):
+    ┌─────────────────┬──────────────┬─────────────────────┐
+    │ Quality Level   │ G* Range     │ Research Reference  │
+    ├─────────────────┼──────────────┼─────────────────────┤
+    │ Excellent       │ 0.0018-0.003 │ Table 2, Paper      │
+    │ Very Good       │ 0.003-0.01   │ Industry standard   │
+    │ Good            │ 0.01-0.05    │ Acceptable for labs │
+    │ Fair            │ 0.05-0.1     │ Converging...       │
+    │ Poor            │ > 0.1        │ Needs tuning        │
+    └─────────────────┴──────────────┴─────────────────────┘
+
+CONVERGENCE BEHAVIOR:
+    t = 1 min    → G* ≈ 0.1-0.5 g (lots of variation)
+    t = 10 min   → G* ≈ 0.02-0.05 g (converging)
+    t = 30 min   → G* ≈ 0.005-0.02 g (very good)
+    t = 60 min   → G* ≈ 0.003-0.005 g (excellent)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2.3 HOW CONVERGENCE IS ACHIEVED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Convergence happens because:
+
+1. EARLY TIME (t < 5 min):
+   - Gravity vector traces non-uniformly on unit sphere
+   - Some regions have more coverage than others
+   - Time average ⟨g⃗⟩ is non-zero (biased toward certain direction)
+   - Result: G* is large (~0.1-0.5 g)
+
+2. MIDDLE TIME (5-30 min):
+   - Gravity trajectory gradually fills more of sphere
+   - Time average ⟨g⃗⟩ decreases as coverage becomes more uniform
+   - Result: G* decreases (exponential decay)
+
+3. LATE TIME (> 30 min):
+   - Sphere trajectory asymptotically approaches uniform coverage
+   - Time average ⟨g⃗⟩ approaches zero
+   - Result: G* approaches minimum theoretical value (~0.003g)
+
+MATHEMATICAL MODEL:
+    G*(t) ≈ G*_min + (G*_initial - G*_min) · e^(-t/τ)
+    
+    Where:
+        τ ≈ 20-30 minutes (time constant, depends on motor speeds and ratio)
+        G*_min ≈ 0.003g (theoretical minimum, limited by sensor noise)
+        G*_initial ≈ 0.5g (initial random value)
+
+
+================================================================================
+                   SECTION 3: TRAJECTORY ON UNIT SPHERE
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3.1 UNIT SPHERE PROPERTY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Since ||g⃗|| = 1 ALWAYS, all gravity vectors lie on a UNIT SPHERE.
+
+Unit Sphere Equation:
+    Gx² + Gy² + Gz² = 1
+
+The trajectory is the path traced by the tip of the gravity vector vector
+over time, projected onto this unit sphere.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3.2 PARAMETRIC TRAJECTORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The trajectory on the unit sphere can be parameterized by time:
+
+    Gx(t) = -sin(φ(t))·cos(ψ(t))
+    Gy(t) = -cos(φ(t))
+    Gz(t) = sin(φ(t))·sin(ψ(t))
+
+Where φ(t) and ψ(t) evolve according to the angle integration equations.
+
+At each time step, we get a point (Gx, Gy, Gz) on the unit sphere.
+Connecting all these points creates the trajectory.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3.3 TRAJECTORY VISUALIZATION (In the Dashboard)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The "Trajectory on Unit Sphere" chart shows:
+
+AXIS SCALE: -1.0 to +1.0 (representing the unit sphere)
+
+VISUALIZATION:
+    • Green line = gravity vector trajectory
+    • Magenta/pink point = current gravity vector position
+    • Glow around point = visualization effect
+
+INTERPRETATION:
+    
+    GOOD MICROGRAVITY (Poor Coverage):
+    ┌──────────────────────────────────┐
+    │ Sphere is uniformly covered with │
+    │ green lines. Trajectory wanders  │
+    │ throughout entire sphere.        │
+    │ → taSMG is EXCELLENT (< 0.005g) │
+    └──────────────────────────────────┘
+    
+    POOR MICROGRAVITY (Clustered):
+    ┌──────────────────────────────────┐
+    │ Green lines cluster in one region│
+    │ (e.g., bottom hemisphere only).  │
+    │ Large gaps with no coverage.     │
+    │ → taSMG is POOR (> 0.1g)        │
+    └──────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3.4 WHY IS THIS SIGNIFICANT?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The trajectory on the unit sphere directly shows how well the RPM is
+randomizing the gravity vector direction:
+
+1. UNIFORM COVERAGE → Time average ⟨g⃗⟩ ≈ 0 → G* ≈ 0 (GOOD)
+   Because vectors in all directions cancel out when averaged
+
+2. CLUSTERED COVERAGE → Time average ⟨g⃗⟩ ≠ 0 → G* ≠ 0 (BAD)
+   Because vectors are biased toward certain direction
+
+Example: If trajectory only covers the "bottom" hemisphere (Gy < 0),
+then ⟨Gy⟩ will be negative, making G* non-zero.
+
+
+================================================================================
+                 SECTION 4: GRAVITY AT SPECIFIC LOCATIONS
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4.1 SAMPLE POINT (LOCATION) CONCEPT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the dashboard, you can specify a SAMPLE POINT with coordinates (x, y, z)
+to calculate gravity at that specific location within the enclosure.
+
+The sample point coordinates are specified in CENTIMETERS relative to the
+CENTER of the payload (origin).
+
+Example coordinates:
+    (0, 0, 0)     → Center of payload
+    (20, 0, 0)    → 20 cm to the right
+    (0, -10, 0)   → 10 cm downward
+    (5, 5, 5)     → 5 cm in all directions
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4.2 GRAVITY CALCULATION AT A POINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The gravity at any point inside the RPM is the SAME as at the center,
+because:
+
+1. The payload is RIGID (not flexible/stretchy)
+2. All points rotate TOGETHER with the same φ and ψ angles
+3. Earth's gravity field is UNIFORM (varies negligibly over 50cm)
+4. No centrifugal effects are included (assumed small for low speeds)
+
+Therefore:
+    Gx(point) = Gx(center) = -sin(φ)·cos(ψ)
+    Gy(point) = Gy(center) = -cos(φ)
+    Gz(point) = Gz(center) = sin(φ)·sin(ψ)
+
+ADVANCED NOTE (Future):
+    If we include centrifugal effects: a_c = ω² × r
+    Then gravity would vary by location:
+        g_total(point) = g_gravity + a_centrifugal(point)
+    But for low speeds (2 RPM) and small payload (50cm), this is negligible.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4.3 TIME-AVERAGED GRAVITY AT A POINT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Since gravity is the same at all points, the time average is also the same:
+
+    ⟨Gx(point)⟩ = ⟨Gx(center)⟩ = ⟨-sin(φ)·cos(ψ)⟩
+    ⟨Gy(point)⟩ = ⟨Gy(center)⟩ = ⟨-cos(φ)⟩
+    ⟨Gz(point)⟩ = ⟨Gz(center)⟩ = ⟨sin(φ)·sin(ψ)⟩
+
+So the taSMG is also the same:
+    G*(point) = G*(center) = ||⟨g⃗(point)⟩|| = ||⟨g⃗(center)⟩||
+
+
+================================================================================
+                      SECTION 5: DASHBOARD METRICS
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5.1 DISPLAYED METRICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ METRIC NAME              │ FORMULA/DEFINITION        │ UNIT  │ DASHBOARD   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Instant Gx              │ -sin(φ)·cos(ψ)             │ [g]   │ Vector X    │
+│ Instant Gy              │ -cos(φ)                    │ [g]   │ Vector Y    │
+│ Instant Gz              │ sin(φ)·sin(ψ)              │ [g]   │ Vector Z    │
+│                         │                            │       │             │
+│ Avg Gx                  │ ⟨-sin(φ)·cos(ψ)⟩           │ [g]   │ Avg X       │
+│ Avg Gy                  │ ⟨-cos(φ)⟩                  │ [g]   │ Avg Y       │
+│ Avg Gz                  │ ⟨sin(φ)·sin(ψ)⟩            │ [g]   │ Avg Z       │
+│                         │                            │       │             │
+│ Instant |g|             │ √(Gx²+Gy²+Gz²)             │ [g]   │ Instant G   │
+│ Time-Avg |g| (taSMG)   │ √(⟨Gx⟩²+⟨Gy⟩²+⟨Gz⟩²)       │ [g]   │ taSMG/G*    │
+│ Min G*                  │ min(G*(t)) for all t       │ [g]   │ Min G       │
+│ Max G*                  │ max(G*(t)) for all t       │ [g]   │ Max G       │
+│                         │                            │       │             │
+│ φ (Inner angle)         │ φ(t) = ∫ω_φ dt             │ [deg] │ φ (Inner)   │
+│ ψ (Outer angle)         │ ψ(t) = ∫ω_ψ dt             │ [deg] │ ψ (Outer)   │
+│ ω_φ (Inner speed)       │ User input or motor encoder│ [RPM] │ Omega_φ     │
+│ ω_ψ (Outer speed)       │ User input or motor encoder│ [RPM] │ Omega_ψ     │
+│ γ (Velocity ratio)      │ ω_φ / ω_ψ                  │ [-]   │ γ = ω/ω     │
+│                         │                            │       │             │
+│ Samples Collected       │ N (counter, increments each│ [#]   │ Samples     │
+│                         │ simulation step)           │       │             │
+│ Elapsed Time            │ t = N · Δt                 │ [s]   │ Elapsed     │
+│                         │ Δt = 0.02 s (50Hz)         │       │             │
+│                         │ (Displayed as HH:MM:SS)    │       │             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5.2 WHAT EACH METRIC MEANS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+INSTANT GRAVITY (Gx, Gy, Gz)
+────────────────────────────
+    Definition: The gravity vector components RIGHT NOW
+    Range: Each component varies between -1 and +1 g
+    Updates: Every 20ms (50Hz)
+    Interpretation: Shows how gravity direction changes
+    
+    Example timeline:
+        t=0ms    → Gx=0.5, Gy=-0.7, Gz=0.5
+        t=20ms   → Gx=0.6, Gy=-0.6, Gz=0.4
+        t=40ms   → Gx=0.4, Gy=-0.8, Gz=0.6
+
+
+INSTANT |g| (Magnitude of Instantaneous Gravity)
+─────────────────────────────────────────────────
+    Formula: √(Gx² + Gy² + Gz²)
+    Expected Value: Always 1.0 g
+    Range: 0.99 to 1.01 (slight numerical precision variation)
+    Interpretation: Validates that Gx, Gy, Gz are correct
+                    Should NEVER deviate from 1.0
+
+
+AVERAGE GRAVITY (⟨Gx⟩, ⟨Gy⟩, ⟨Gz⟩)
+──────────────────────────────────
+    Definition: Time average of gravity components over ALL samples
+    Calculation: ⟨Gx⟩ = Σ(Gx_i) / N_samples
+    Expected Value: Close to 0 for good microgravity
+    Range: -0.5 to +0.5 g (typically)
+    Updates: Every 20ms
+    Interpretation: Shows if gravity vector is biased
+    
+    Example:
+        After 10 min: ⟨Gx⟩ = -0.0012 g  (small bias, GOOD)
+        After 1 min:  ⟨Gx⟩ = -0.15 g    (large bias, BAD)
+
+
+TIME-AVERAGED |g| (G* / taSMG)
+──────────────────────────────
+    Formula: √(⟨Gx⟩² + ⟨Gy⟩² + ⟨Gz⟩²)
+    Expected Value: Close to 0 for good microgravity
+    Range: 0 to 1.0 g
+    Updates: Every 20ms
+    Interpretation: THE MAIN METRIC for microgravity quality
+    Color Coding (in dashboard):
+        Green   → < 0.005 g   (Excellent)
+        Cyan    → < 0.02 g    (Good)
+        Yellow  → < 0.1 g     (Fair)
+        Orange  → > 0.1 g     (Needs tuning)
+    
+    This is what you WANT TO MINIMIZE!
+
+
+MIN G* AND MAX G*
+─────────────────
+    Definition: The smallest and largest values of G* achieved so far
+    Purpose: Shows the RANGE of microgravity quality
+    Expected Behavior:
+        Min G* decreases over time (approaching theoretical minimum)
+        Max G* also decreases over time (peaks get smaller)
+    
+    Example timeline:
+        t=1 min   → Min=0.05g, Max=0.55g
+        t=10 min  → Min=0.004g, Max=0.08g
+        t=30 min  → Min=0.003g, Max=0.015g
+
+
+SAMPLES COLLECTED
+─────────────────
+    Definition: Total number of physics simulation steps executed
+    Calculation: N_samples = floor(Elapsed_Time / Δt)
+    Updates: Incremented every Δt = 20ms
+    Expected Rate: ~50 samples per second
+    
+    Formula relationship:
+        N_samples ≈ Elapsed_Time × 50
+        
+    Example:
+        After 1 min  → ~3,000 samples
+        After 10 min → ~30,000 samples
+        After 60 min → ~180,000 samples
+
+
+ELAPSED TIME
+────────────
+    Definition: Total time simulation has been running
+    Calculation: Elapsed = N_samples × Δt, where Δt = 0.02 s
+    Display Format: HH:MM:SS
+    Important: Only counts RUNNING time (paused time not counted)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5.3 QUICK REFERENCE TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Expected Values at Different Simulation Durations:
+
+Duration │ Samples │ Min G*    │ Max G*    │ Mean G*   │ Status
+─────────┼─────────┼───────────┼───────────┼───────────┼─────────────────
+1 min    │ ~3,000  │ 0.05-0.1g │ 0.3-0.6g  │ 0.2-0.3g  │ Initializing
+5 min    │ ~15,000 │ 0.01-0.05g│ 0.08-0.2g │ 0.04-0.08g│ Stabilizing
+10 min   │ ~30,000 │ 0.004-0.01g
+│ 0.02-0.08g│ 0.01-0.03g│ Good
+30 min   │ ~90,000 │ 0.003-0.005g
+│ 0.005-0.02g│ 0.003-0.01g│ Very Good
+60 min   │ ~180,000│ 0.003g    │ 0.003-0.01g│ 0.003-0.005g│ Excellent
+
+
+================================================================================
+                  SECTION 6: SIMULATION PARAMETERS
+================================================================================
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6.1 CONSTANT PARAMETERS (Set at compile-time)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    Name              │ Symbol │ Value     │ Unit │ Description
+    ─────────────────┼────────┼───────────┼──────┼─────────────────────────
+    Simulation Rate   │ f_sim  │ 50        │ Hz   │ Physics loop frequency
+    Time Step         │ Δt     │ 0.02      │ s    │ 1 / f_sim
+    Broadcast Rate    │ f_bcast│ 20        │ Hz   │ WebSocket update rate
+    Earth Gravity     │ g_earth│ 9.81      │ m/s²│ Standard gravitational
+    Sample Rate       │ f_samp │ 50        │ Hz   │ Same as f_sim
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6.2 USER-CONFIGURABLE PARAMETERS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    Name                    │ Range      │ Default │ Unit  │ Notes
+    ────────────────────────┼────────────┼─────────┼───────┼──────────────────
+    Inner Motor Speed       │ 0-20       │ 2.0     │ RPM   │ ω_φ
+    Outer Motor Speed       │ 0-20       │ 2.0     │ RPM   │ ω_ψ
+    Inner Frame Length      │ 50-300     │ 80      │ cm    │ Must > payload
+    Inner Frame Breadth     │ 50-300     │ 80      │ cm    │ Must > payload
+    Outer Frame Length      │ 50-300     │ 150     │ cm    │ Must > inner
+    Outer Frame Breadth     │ 50-300     │ 150     │ cm    │ Must > inner
+    Payload Width           │ 5-100      │ 50      │ cm    │ Must fit inside
+    Payload Height          │ 5-100      │ 50      │ cm    │ Must fit inside
+    Payload Depth           │ 5-100      │ 50      │ cm    │ Must fit inside
+    Enclosure Width (X)     │ 10-200     │ 50      │ cm    │ Sample region
+    Enclosure Height (Y)    │ 10-200     │ 50      │ cm    │ Sample region
+    Enclosure Depth (Z)     │ 10-200     │ 50      │ cm    │ Sample region
+    Inner Axis Tilt         │ -45 to +45 │ 0       │ deg   │ α_inner (future)
+    Outer Axis Tilt         │ -45 to +45 │ 0       │ deg   │ α_outer (future)
+
+
+================================================================================

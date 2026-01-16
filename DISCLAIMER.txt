@@ -1,0 +1,188 @@
+DISCLAIMER - AI-Generated Code & Licensing
+==========================================
+
+AI-GENERATED CONTENT NOTICE
+----------------------------
+
+This software was developed with significant assistance from AI tools:
+  - GitHub Copilot (code completion and suggestions)
+  - Claude/Anthropic (architecture design, documentation, implementation)
+  - Human Direction (requirements, physics specifications, testing)
+
+Estimated Contribution:
+  AI-Generated: ~80% (code structure, implementation, documentation)
+  Human-Directed: ~20% (requirements, physics equations, testing)
+
+
+WHO OWNS AI-GENERATED CODE?
+----------------------------
+
+Legal Status (as of January 2026):
+  - AI-generated works may not be copyrightable alone (US Copyright Office)
+  - Works with human creative input may be copyrightable
+  - This project includes human direction, requirements, and modifications
+  
+Practical Conclusion:
+  The project is owned and maintained by Department of Aerospace Engineering, IIST
+  AI tools used as development assistants (like using an IDE)
+  Human creativity in design, requirements, and testing
+
+
+RECOMMENDED LICENSE: MIT
+-------------------------
+
+Why MIT License:
+  ✓ Simple and permissive
+  ✓ Allows commercial use
+  ✓ Minimal restrictions
+  ✓ Compatible with AI-generated code
+  ✓ Well-understood legally
+  ✓ Used by dependencies (Three.js, FastAPI, NumPy)
+
+MIT License Terms:
+  - Anyone can use, modify, distribute (commercial or not)
+  - Must include copyright notice and license text
+  - NO WARRANTY - author not liable
+  - Protects from lawsuits
+
+
+COMMERCIAL USE: ACCEPTABLE
+--------------------------
+
+AI-generated code CAN be used commercially:
+
+✓ All libraries used are permissively licensed (MIT, BSD)
+✓ No patented algorithms used
+✓ Only published research equations (not patented)
+✓ GitHub Copilot/Claude output belongs to user
+✓ Significant human direction and design
+
+You CAN:
+  - Sell this software
+  - Offer as SaaS
+  - Integrate into commercial products
+  - License to others commercially
+
+You MUST:
+  - Cite research paper (Yotov et al.)
+  - Disclose AI assistance (transparency)
+  - Keep license notices from dependencies
+
+
+LIABILITY DISCLAIMER: NO WARRANTY
+----------------------------------
+
+This software is provided "AS-IS" without warranties:
+  ❌ No guarantee of accuracy
+  ❌ No guarantee of fitness for purpose
+  ❌ No liability for damages
+  
+Specific Disclaimers:
+  1. Physics based on research, but implementation may have errors
+  2. Not validated against physical machines
+  3. Research/education only - NOT medical use
+  4. AI code may contain bugs
+  5. Not FDA approved
+  
+Author NOT liable for:
+  - Any damages (direct, indirect, consequential)
+  - Loss of profits, data, or use
+  - Business interruption
+  - Third party claims
+
+
+HOW TO RELEASE PUBLICLY
+------------------------
+
+Step 1: Add LICENSE File (MIT License recommended)
+Step 2: Add AI disclosure to README.md
+Step 3: Cite research paper in documentation
+Step 4: Add this DISCLAIMER file
+Step 5: Make GitHub repo public
+
+Include in README:
+  "This project was developed with AI assistance (GitHub Copilot, Claude).
+   See DISCLAIMER.md for licensing details."
+
+
+REFERENCES USED
+---------------
+
+Only ONE research paper was used:
+  - Yotov et al., "A New Random Positioning Machine Modification..."
+  - Used for: Rotation matrices, taSMG concept, physics equations
+
+NO other sources:
+  ✗ No other research papers searched
+  ✗ No patents used
+  ✗ No code copied from other implementations
+  
+All libraries are open source (MIT/BSD licenses).
+
+See docs/REFERENCES.txt for complete list.
+
+
+LEGAL OBSERVATIONS
+------------------
+
+Risk Assessment:
+  - Patent Risk: LOW (no patented algorithms)
+  - Copyright Risk: LOW (one cited paper, open source libs)
+  - Trademark Risk: NONE (generic term "RPM")
+  - Liability Risk: MITIGATED (MIT license disclaimer)
+
+Safe Release Requirements:
+  ✓ Use MIT License with disclaimer
+  ✓ Disclose AI assistance
+  ✓ Cite research sources
+  ✓ Don't make medical claims
+  ✓ Mark as "research/educational use"
+
+
+WHEN TO CONSULT A LAWYER
+-------------------------
+
+Consider legal advice if:
+  - Planning >$100k revenue from this
+  - Competitor claims patent infringement
+  - Licensing to large companies
+  - Expanding to medical/regulated use
+  - Facing legal threats
+
+For small open source release:
+  MIT License + Disclaimers = Sufficient Protection
+
+
+SAFE RELEASE CHECKLIST
+-----------------------
+
+Required:
+  [x] Choose MIT License
+  [x] Add LICENSE file
+  [x] Add AI disclosure to README
+  [x] Cite research paper
+  [x] Include DISCLAIMER files
+  [x] Add NO WARRANTY notice
+  [x] List dependencies and licenses
+
+Optional:
+  [ ] Add CONTRIBUTING.md
+  [ ] Set up issue templates
+  [ ] Add CODE_OF_CONDUCT.md
+
+
+SUMMARY
+-------
+
+✓ This code is yours (human-directed AI generation)
+✓ Use MIT License (safest for AI code)
+✓ Commercial use is acceptable
+✓ Disclose AI assistance (transparency)
+✓ Cite research paper (academic courtesy)
+✓ Include NO WARRANTY (liability protection)
+✓ Only one research source used (no copyright issues)
+
+Questions? See DISCLAIMER.md for details or consult an IP attorney.
+
+Last Updated: January 16, 2026
+Applies To: RPM Digital Twin Simulator v3.1.1+

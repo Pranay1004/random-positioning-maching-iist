@@ -1,0 +1,7 @@
+# Optional visualization and heavy native deps
+vtk>=9.3.0
+pyqtgraph>=0.13.0
+# If using PyQt GUI
+PyQt6>=6.6.0
+# Optional high-end 3D engine bindings
+pythreejs>=2.4.0

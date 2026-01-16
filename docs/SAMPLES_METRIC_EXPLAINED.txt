@@ -1,0 +1,308 @@
+DASHBOARD METRIC: "SAMPLES"
+===========================
+
+What is "Samples"?
+──────────────────────────────────────────────────────────────
+
+The "Samples" metric on the dashboard shows:
+
+  HOW MANY GRAVITY MEASUREMENTS have been collected since simulation started
+  
+  It's a COUNTER that increments by ~50 each second (at 50 Hz simulation rate)
+
+
+Visual Location on Dashboard:
+──────────────────────────────────────────────────────────────
+
+Dashboard Section: "Dashboard Metrics" (bottom right)
+Label: "Samples"
+Color: Yellow
+Value: Number (e.g., "2,500" or "30,000")
+HTML: <div id="samples">0</div>
+
+
+How is "Samples" Obtained (Calculated)?
+──────────────────────────────────────────────────────────────
+
+Formula:
+  N = total number of gravity measurements collected
+
+Increments:
+  Every physics simulation step:
+    1. Physics engine computes new gravity vector
+    2. Add gravity to history (running sum)
+    3. N increments by 1
+    4. Send N to dashboard
+
+Rate:
+  The backend runs at 50 Hz (Δt = 0.02 seconds)
+  
+  Therefore:
+    Samples per second = 50
+    Samples per minute = 50 × 60 = 3,000
+    Samples per hour   = 50 × 3,600 = 180,000
+
+Time Relationship:
+  Elapsed_Time = N_samples × Δt
+  Elapsed_Time = N_samples × 0.02 seconds
+  
+  Example:
+    N = 1,000 samples → Elapsed = 1,000 × 0.02 = 20 seconds
+    N = 3,000 samples → Elapsed = 3,000 × 0.02 = 60 seconds
+
+
+Code Implementation (How it Changes)
+──────────────────────────────────────────────────────────────
+
+BACKEND (src/webapp/server.py):
+──────────────────────────────
+
+# Every physics step:
+def update_state(self, dt: float):
+    ...
+    # Gravity history stores all measurements
+    self.gravity_history.append(g_sample)  # ← Add new measurement
+    
+    # Compute sample count
+    n_samples = len(self.gravity_history)  # ← Count all samples
+    
+    # Cap history if too large (memory management)
+    if len(self.gravity_history) > 6000:
+        self.gravity_history.pop(0)  # Remove oldest if > 100 seconds
+    
+    # Return to client
+    return {
+        "n_samples": n_samples,  # ← Send count
+        ...
+    }
+
+# When sending to frontend:
+result = EngineState(
+    samples=int(result["n_samples"]),  # ← Becomes "Samples" metric
+    ...
+)
+
+
+FRONTEND (src/webapp/static/index.html):
+──────────────────────────────────────────
+
+// Receive from backend
+const data = JSON.parse(message.data);
+
+// Update dashboard display
+document.getElementById('samples').textContent = data.samples.toLocaleString();
+                                                 ↑
+                                         Format with commas (e.g., "2,500")
+
+
+How Does "Samples" Change Over Time?
+──────────────────────────────────────────────────────────────
+
+Timeline Example:
+──────────────
+
+Time (s) │ Elapsed │ Samples │ Per Second │ Status
+─────────┼─────────┼─────────┼────────────┼──────────────
+0.00     │ 0 s     │ 0       │ -          │ Just started
+0.50     │ 0.5 s   │ 25      │ 50         │ Steady collection
+1.00     │ 1 s     │ 50      │ 50         │ Steady
+2.00     │ 2 s     │ 100     │ 50         │ Steady
+5.00     │ 5 s     │ 250     │ 50         │ Steady
+10.0     │ 10 s    │ 500     │ 50         │ Steady
+60.0     │ 60 s    │ 3,000   │ 50         │ Steady
+120.0    │ 2 min   │ 6,000   │ 50         │ Steady
+
+
+Key Behavior:
+  - Linear increase at constant rate (50 samples/second)
+  - Never decreases (only resets when simulation resets)
+  - Independent of motor speeds (always 50 Hz)
+  - Independent of gravity values (just counts measurements)
+
+
+Why is "Samples" Important?
+──────────────────────────────────────────────────────────────
+
+1. QUALITY INDICATOR
+   - More samples = more data averaged
+   - More data = more accurate taSMG (time-averaged gravity)
+   - Generally want 50+ samples before trusting results
+   
+2. TIME TRACKING
+   - Can calculate elapsed time: t = samples × 0.02 seconds
+   - Alternative to looking at clock
+   
+3. CONVERGENCE MONITORING
+   - Watch samples increase to see convergence progress
+   - If samples stops increasing = simulation stopped
+   
+4. DATA VOLUME
+   - Helps users understand memory usage
+   - ~50-100 samples per memory unit
+   - At 6,000 samples = ~2 minutes of data in memory
+
+
+Relationship to Other Metrics
+──────────────────────────────────────────────────────────────
+
+Samples ←→ Elapsed Time
+  Elapsed_Time = Samples × 0.02 seconds
+  
+  Example:
+    Samples = 1,000 → Elapsed = 20 seconds
+    Elapsed = 60 seconds → Samples = 3,000
+
+Samples ←→ taSMG (Time-Averaged Gravity)
+  taSMG = √(⟨Gx⟩² + ⟨Gy⟩² + ⟨Gz⟩²)
+  
+  Where:
+    ⟨Gx⟩ = Σ(Gx_i) / N_samples
+    ⟨Gy⟩ = Σ(Gy_i) / N_samples
+    ⟨Gz⟩ = Σ(Gz_i) / N_samples
+  
+  Therefore:
+    - Higher N_samples = more data for averaging
+    - More data = lower noise in taSMG
+    - Converges to true average as N → ∞
+
+Samples ←→ Min/Max G*
+  Track minimum and maximum taSMG value across ALL samples
+  Only updated when N_samples > 50 (wait for stability)
+
+
+How to Use "Samples" Information
+──────────────────────────────────────────────────────────────
+
+INTERPRETATION:
+  
+  Samples = 0-100
+    Status: Just started
+    Action: Wait for convergence
+    Advice: Ignore taSMG values yet (too noisy)
+  
+  Samples = 100-500
+    Status: Early convergence
+    Action: Motor adjustments are beneficial
+    Advice: Watch taSMG trend but not final value
+  
+  Samples = 500-3,000
+    Status: Mid-range (10-60 seconds)
+    Action: Good for evaluation
+    Advice: taSMG becoming stable
+  
+  Samples = 3,000-10,000
+    Status: Converged (60-200 seconds)
+    Action: Use taSMG value as reference
+    Advice: This is representative data
+  
+  Samples > 30,000
+    Status: Long-running (>10 minutes)
+    Action: Excellent statistics
+    Advice: Very confident in taSMG and min/max
+
+
+Resetting Samples
+──────────────────────────────────────────────────────────────
+
+How to reset Samples to 0:
+  1. Click "Reset Simulation" button
+  2. OR: Stop and restart the simulation
+  3. OR: Reload the browser page
+
+When samples reset:
+  - All history cleared
+  - Start fresh collection
+  - Useful for testing different motor configurations
+
+
+Technical Details
+──────────────────────────────────────────────────────────────
+
+Data Structure:
+  gravity_history: List of gravity vectors
+    Type: List[np.array([Gx, Gy, Gz])]
+    Size: Up to 6,000 entries (~100 seconds max)
+    Memory: ~1 KB per 100 samples
+  
+  n_samples: Count of entries in gravity_history
+    Type: Integer
+    Range: 0 to 6,000+
+    Growth: +50 per second
+
+Collection Rate:
+  Guaranteed: 50 Hz (0.02 second intervals)
+  Not variable: Always 50 samples per second
+  Tied to: Physics simulation clock
+  Independent of: Motor speeds, gravity values, rendering
+
+
+Backend Code Flow:
+──────────────────
+
+simulation.step(dt)
+    ↓
+compute_gravity_vector()
+    ↓
+gravity_history.append(g)  ← Sample collected
+    ↓
+n_samples = len(gravity_history)  ← Count
+    ↓
+Send "samples": n_samples  ← To frontend
+    ↓
+Dashboard updates
+
+
+Frontend Update Flow:
+──────────────────────
+
+WebSocket message received
+    ↓
+Parse JSON data
+    ↓
+data.samples extracted
+    ↓
+document.getElementById('samples').textContent = data.samples
+    ↓
+Dashboard UI updates with new count
+
+
+Relationship to History Management
+──────────────────────────────────────────────────────────────
+
+History Window: 6,000 samples maximum
+  Reason: Memory management (keeps ~100 seconds of data)
+  
+When history reaches 6,000:
+  Old samples are REMOVED (FIFO: first-in-first-out)
+  BUT: New samples keep coming in
+  Result: n_samples stays around 6,000 (rolling window)
+  
+For continuous monitoring:
+  You can still track MIN/MAX across all sessions
+  Samples counter only shows current window
+
+
+Expected Values Chart
+──────────────────────────────────────────────────────────────
+
+Duration    │ Expected Samples  │ Min/Max G*  │ Mean G* σ
+────────────┼──────────────────┼─────────────┼──────────
+5 seconds   │ 250              │ Unstable    │ High noise
+10 seconds  │ 500              │ Setting     │ Med noise
+30 seconds  │ 1,500            │ Stabilizing │ Lower noise
+60 seconds  │ 3,000            │ Stable ✓    │ Low noise
+300 sec(5m) │ 15,000           │ Very stable │ Very low
+600 sec(10m)│ 30,000           │ Excellent   │ Excellent
+
+
+Summary
+──────────────────────────────────────────────────────────────
+
+What:    Count of gravity measurements collected
+How:     Increments at 50 Hz (50 per second)
+When:    Continuously during simulation
+Change:  Linear increase over time
+Why:     Quality indicator, time reference, convergence marker
+Range:   0 to 6,000+ (rolling window)
+Rate:    50 samples/second (constant)
+Use:     Judge data quality and simulation duration

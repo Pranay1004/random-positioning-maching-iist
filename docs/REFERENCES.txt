@@ -1,0 +1,147 @@
+REFERENCES AND SOURCES
+======================
+
+Primary Research Paper
+----------------------
+
+Title: "A New Random Positioning Machine Modification Applied for 
+       Microgravity Simulation in Laboratory Experiments with Rats"
+
+Authors: Yotov et al.
+
+Used From This Paper:
+  ✓ Equation 2: Rotation matrix transformation (R_Y(ψ) · R_Z(φ))
+  ✓ Time-averaged microgravity (taSMG) concept
+  ✓ Gravity vector transformation to sample frame
+  ✓ Angular velocity definitions (ω_φ, ω_ψ)
+  ✓ Frame geometry (inner/outer frame nested gimbal design)
+
+This was the ONLY external research paper used for physics implementation.
+
+
+AI-Generated Components
+-----------------------
+
+This project was developed with assistance from GitHub Copilot and Claude AI:
+
+1. Code Architecture
+   - FastAPI backend structure
+   - Three.js 3D visualization
+   - WebSocket real-time communication
+   - Physics engine implementation
+
+2. Mathematical Implementation
+   - Rotation matrix calculations (based on paper equations)
+   - Time-averaging algorithms
+   - Numerical integration (Euler method)
+
+3. UI/UX Design
+   - Dark theme dashboard
+   - Real-time charts and graphs
+   - Responsive controls
+
+4. Documentation
+   - Technical documentation
+   - Code comments
+   - User guides
+
+AI Contribution: ~80% of code structure, ~20% physics equations from paper
+
+
+Standard Libraries and Frameworks
+----------------------------------
+
+Python Libraries (Open Source):
+  - NumPy (BSD License) - Numerical computations
+  - FastAPI (MIT License) - Web framework
+  - Uvicorn (BSD License) - ASGI server
+  - SciPy (BSD License) - Scientific computing
+  - Loguru (MIT License) - Logging
+
+JavaScript Libraries (Open Source):
+  - Three.js (MIT License) - 3D rendering
+  - Chart.js (MIT License) - Data visualization
+
+All libraries used are open source with permissive licenses.
+
+
+No Patents Used
+---------------
+
+✓ No patented algorithms were knowingly used
+✓ No proprietary methods were implemented
+✓ Only fundamental physics principles (rotation matrices) from research paper
+✓ Standard numerical methods (Euler integration, time averaging)
+
+
+No Other Research Papers Used
+------------------------------
+
+IMPORTANT: Only the Yotov et al. paper provided by the project owner was used.
+
+I (AI) did NOT:
+  ✗ Search for other research papers
+  ✗ Use other RPM designs
+  ✗ Reference other microgravity simulation methods
+  ✗ Copy from other implementations
+
+All other implementation details are:
+  - Standard software engineering practices
+  - Common web development patterns
+  - Basic physics principles (Newton's laws)
+  - Mathematical operations (matrix multiplication)
+
+
+Code Originality
+----------------
+
+Original to This Project:
+  ✓ Specific physics engine implementation
+  ✓ Web dashboard UI design
+  ✓ Real-time visualization approach
+  ✓ Adaptive history management (taSMG fix)
+  ✓ Specific architecture choices
+
+Based on Standard Practices:
+  ✓ REST API patterns
+  ✓ WebSocket protocol usage
+  ✓ 3D rendering techniques
+  ✓ Chart visualization methods
+
+
+Copyright Compliance
+--------------------
+
+✓ All external libraries properly licensed (MIT, BSD)
+✓ Only one research paper used (cited above)
+✓ No code copied from other RPM implementations
+✓ No proprietary algorithms used
+✓ AI-generated code belongs to project owner (see DISCLAIMER)
+
+
+Citation Format
+---------------
+
+If publishing or presenting this work, cite:
+
+1. Primary Source:
+   Yotov et al., "A New Random Positioning Machine Modification..."
+   [Full citation as provided by project owner]
+
+2. Software Implementation:
+   [Your Name], "RPM Digital Twin Simulator" (2026)
+   AI-assisted development with GitHub Copilot and Claude
+   https://github.com/Pranay1004/random-positioning-machine-iist
+
+
+Disclaimer
+----------
+
+This project is provided AS-IS without warranty. The physics model is based
+on published research and standard engineering principles. No claim is made
+that this implementation matches any commercial or proprietary RPM designs.
+
+See DISCLAIMER.md for full legal information.
+
+
+Last Updated: January 16, 2026
