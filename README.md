@@ -187,6 +187,24 @@ src/
 
 ---
 
+## Deployment Options
+
+**Option 1: Local Web App (FastAPI)**
+```bash
+python src/main.py
+# Visit http://localhost:8080
+```
+
+**Option 2: Streamlit Cloud (Recommended for quick demo)**
+```bash
+streamlit run streamlit_app.py
+# Or deploy to: https://streamlit.io/cloud
+```
+
+See [STREAMLIT_DEPLOYMENT.txt](STREAMLIT_DEPLOYMENT.txt) for cloud deployment guide.
+
+---
+
 ## Project Status
 
 | Aspect | Status |
@@ -195,6 +213,7 @@ src/
 | Web Dashboard | Complete |
 | 3D Visualization | Complete |
 | API | Complete |
+| Streamlit App | Complete |
 | Hardware Integration | In Progress (v3.2.0) |
 | Unit Tests | Complete |
 
