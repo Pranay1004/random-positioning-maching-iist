@@ -30,6 +30,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from loguru import logger
 from pydantic import BaseModel
+from webapp.hardware_tests import router as hardware_tests_router
 
 
 # =============================================================================
@@ -803,6 +804,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include hardware tests API
+app.include_router(hardware_tests_router)
 
 
 # =============================================================================

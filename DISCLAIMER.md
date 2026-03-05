@@ -1,3 +1,44 @@
+# DISCLAIMER - AI-Generated Code, Licensing & Test Result Integrity
+
+---
+
+## Hardware Test Result Integrity
+
+**This project enforces strict honesty in all hardware test reporting.**
+
+### Test Result Definitions
+
+| Result | Meaning |
+|--------|---------|
+| `PASS` | Hardware was physically accessed and the test was verified on real hardware |
+| `FAIL` | Hardware was accessed but returned an error or unexpected response |
+| `SKIP` | Hardware was not connected, not accessible, or the test is software/config-only |
+| `WARN` | Hardware responded but with degraded performance or non-critical issues |
+
+### What "SKIP" Means
+
+A test result of `SKIP` means **the hardware was not available** and the test was not performed. Examples:
+- No GPIO hardware (running on Mac/PC instead of RPi) → all motor/GPIO tests → `SKIP`
+- No serial port / Pico W not connected → Pico W tests → `SKIP`
+- Test validates only a configuration file or formula, not real hardware → `SKIP`
+
+**SKIP is NOT a passing result.** It means "cannot determine — hardware missing."
+
+### Zero Tolerance for Fabricated Results
+
+**There are NO hardcoded, mocked, or fabricated test results in this codebase.** Every test result
+is generated at runtime by the actual test logic. If you see a PASS, real hardware was verified.
+If you see a SKIP, hardware was absent. Any deviation from this policy should be reported
+as a bug immediately.
+
+### On-Hardware vs Off-Hardware Execution
+
+- **Running on Mac/PC (development):** Motors, slip rings, Pico W → DISCONNECTED (no GPIO)
+- **Running on RPi 5 with hardware connected:** Full test suite can reach PASS/FAIL on all components
+- Use `deploy/rpi5_setup.sh` to configure a Raspberry Pi 5 for real hardware testing
+
+---
+
 # DISCLAIMER - AI-Generated Code & Licensing
 
 ## AI-Generated Content Notice

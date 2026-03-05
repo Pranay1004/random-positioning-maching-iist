@@ -338,11 +338,34 @@ class RPMApplication:
             raise ValueError(f"Unknown format: {format}")
     
     def launch_dashboard(self) -> None:
-        """Launch the visualization dashboard."""
-        if self.dashboard:
-            self.dashboard.show()
-        else:
-            logger.warning("Dashboard not initialized")
+        """Launch the FastAPI web dashboard (server.py + static/index.html)."""
+        try:
+            import uvicorn
+            logger.info("Starting FastAPI web dashboard at http://0.0.0.0:8080")
+            print("\n" + "=" * 60)
+            print("  RPM Digital Twin - Web Dashboard")
+            print("=" * 60)
+            print("  Local:   http://localhost:8080")
+            print("  Network: http://0.0.0.0:8080")
+            print("  Press Ctrl+C to stop")
+            print("=" * 60 + "\n")
+            
+            server_dir = Path(__file__).parent / "webapp"
+            sys.path.insert(0, str(server_dir))
+            
+            uvicorn.run(
+                "webapp.server:app",
+                host="0.0.0.0",
+                port=8080,
+                log_level="info",
+                app_dir=str(Path(__file__).parent),
+            )
+        except Exception as e:
+            logger.error(f"Failed to launch web dashboard: {e}")
+            if self.dashboard:
+                self.dashboard.show()
+            else:
+                logger.warning("Dashboard not initialized")
     
     def _print_status(self) -> None:
         """Print current application status."""

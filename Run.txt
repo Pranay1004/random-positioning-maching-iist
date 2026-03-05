@@ -85,15 +85,15 @@ Step 2: Create Virtual Environment
 
 Step 3: Install Dependencies
   pip install -r requirements.txt
-  pip install -r requirements-visualization.txt
+  pip install -r requirements-streamlit.txt
 
-Step 4: Run the Server
-  python src/main.py
+Step 4: Run the Streamlit App
+  streamlit run rpm_streamlit_app.py --server.port 8501
 
 Step 5: Open in Browser
-  Go to: http://localhost:8080
+  Go to: http://localhost:8501
 
-You should see the 3D simulator with real-time visualization.
+You should see the interactive Streamlit dashboard with real-time 3D visualization.
 
 
 ================================================================================
@@ -220,8 +220,8 @@ tests/:
 Server won't start:
   ✓ Check Python version: python --version (need 3.9+)
   ✓ Verify dependencies: pip list | grep -E "fastapi|numpy|scipy"
-  ✓ Check port 8080 is free: lsof -i :8080
-  ✓ Try different port: python src/main.py --port 8000
+  ✓ Check port 8501 is free: lsof -i :8501
+  ✓ Try different port: streamlit run rpm_streamlit_app.py --server.port 8502
 
 Browser shows blank page:
   ✓ Check console for errors: F12 → Console tab
@@ -296,10 +296,10 @@ Attribution:
                         SUPPORT & DOCUMENTATION
 ================================================================================
 
-Web-based simulator:
-  Open: http://localhost:8080
-  Port: 8080 (configurable)
-  Server: http://localhost:8080/api
+Streamlit-based simulator:
+  Open: http://localhost:8501
+  Port: 8501 (configurable)
+  Dashboard: Interactive web interface with real-time updates
 
 Documentation:
   Main guide: docs/README.txt

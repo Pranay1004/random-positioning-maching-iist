@@ -343,10 +343,12 @@ class RPMDashboard:
     Combines multiple plots and gauges into a unified display.
     """
     
-    def __init__(self):
+    def __init__(self, state_manager=None):
         """Initialize dashboard."""
         if not MATPLOTLIB_AVAILABLE:
             raise ImportError("matplotlib is required for RPMDashboard")
+        
+        self.state_manager = state_manager
             
         # Create gauge widgets
         self.gauges = {
@@ -520,6 +522,14 @@ class RPMDashboard:
         if len(plotter._buffers) > 1:
             ax.legend(loc='upper right', framealpha=0.8)
     
+    def show(self) -> None:
+        """
+        Display the dashboard in a matplotlib window.
+        """
+        fig = self.create_full_figure()
+        plt.show(block=False)
+        logger.info("Dashboard displayed")
+
     def save_snapshot(self, filepath: str, dpi: int = 150) -> None:
         """
         Save dashboard snapshot to file.

@@ -25,12 +25,22 @@ hardware:
     timeout: 1.0
     reconnect_interval: 5.0
     
-  # Raspberry Pi Configuration
+  # Raspberry Pi Pico W Configuration (Microcontroller)
+  pico_w:
+    enabled: true
+    port: "auto"  # auto-detect RP2040 USB serial
+    baudrate: 115200
+    timeout: 2.0
+    reconnect_interval: 5.0
+    device_ids: ["2e8a"]  # RPi Pico vendor ID
+    
+  # Raspberry Pi 5 Configuration (Main Brain)
   raspberry_pi:
-    enabled: false
-    host: "192.168.1.100"
-    port: 5000
+    enabled: true
+    host: "0.0.0.0"
+    port: 8080
     protocol: "tcp"  # tcp, websocket
+    role: "brain"    # This is the main processing unit
     
   # Motor Configuration
   motors:
@@ -55,6 +65,35 @@ hardware:
       direction_pin: 5
       step_pin: 6
       enable_pin: 7
+      
+    third_axis:
+      type: "NEMA24"
+      driver: "TB6600"
+      steps_per_revolution: 200
+      microstepping: 16
+      max_speed_rpm: 40.0
+      max_acceleration: 80.0
+      direction_pin: 22
+      step_pin: 23
+      enable_pin: 24
+
+  # Slip Ring Configuration
+  slip_rings:
+    inner:
+      enabled: true
+      channels: 6  # 2 power + 4 signal
+      voltage_rating: 24  # Volts
+      current_rating: 5   # Amps per channel
+      max_rpm: 60
+      signal_lines: ["STEP", "DIR", "ENABLE", "ENCODER_A", "ENCODER_B", "GND"]
+      
+    outer:
+      enabled: true
+      channels: 6
+      voltage_rating: 24
+      current_rating: 5
+      max_rpm: 60
+      signal_lines: ["STEP", "DIR", "ENABLE", "ENCODER_A", "ENCODER_B", "GND"]
 
   # Sensors Configuration
   sensors:

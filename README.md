@@ -52,10 +52,20 @@ Digital_Twin/
 │   └── visualization/
 │
 ├── tests/                 <- TESTING
-│   └── test_core.py
+│   ├── test_core.py
+│   └── hardware/          <- Hardware validation tests
+│       ├── run_all.py         <- Run full hardware test suite
+│       ├── test_base.py       <- Base test class
+│       ├── test_pico_w.py     <- RPi Pico W connectivity
+│       ├── test_rpi5.py       <- Raspberry Pi 5 diagnostics
+│       ├── test_motors.py     <- NEMA motor GPIO tests
+│       └── test_slip_rings.py <- Slip ring signal tests
 │
 ├── config/                <- CONFIGURATION
-│   └── main_config.yaml
+│   └── main_config.yaml   <- Pico W, RPi5, NEMA24, slip ring params
+│
+├── deploy/                <- DEPLOYMENT SCRIPTS
+│   └── rpi5_setup.sh      <- One-shot RPi5 setup script
 │
 ├── firmware/              <- HARDWARE CONTROL
 │   └── arduino/
@@ -74,7 +84,9 @@ Digital_Twin/
 | docs/ | Documentation, guides, physics equations | Everyone |
 | src/ | Python source code | Developers |
 | tests/ | Unit and integration tests | QA, Developers |
+| tests/hardware/ | Real hardware validation (SKIP when disconnected) | Hardware Engineers |
 | config/ | Settings and parameters | DevOps |
+| deploy/ | Deployment and setup scripts for RPi5 | DevOps, Hardware Engineers |
 | database/ | Simulation results, logs | Data analysts |
 | firmware/ | Motor control code | Hardware engineers |
 | Figure/ | Reference images and diagrams | Everyone |
@@ -89,6 +101,10 @@ Digital_Twin/
 - Interactive controls for motor speeds and frame dimensions
 - WebSocket streaming for low-latency updates (50 Hz physics, 20 Hz display)
 - Responsive dark-theme UI with professional dashboard
+- **Hardware Test Suite:** 7-component validation (RPi Pico W, RPi 5, NEMA 23×2, NEMA 24, Slip Rings×2)
+- **Honest test results:** SKIP when hardware disconnected, no hardcoded or fabricated data
+- **Web Hardware Dashboard:** Live test status at `/api/hardware/tests/dashboard`
+- **RPi5 deployment script:** `deploy/rpi5_setup.sh` for one-shot on-hardware setup
 
 ---
 
@@ -181,8 +197,16 @@ src/
 │   └── physics_engine.py  <- Rotation matrices, gravity
 ├── webapp/
 │   ├── server.py          <- FastAPI backend
+│   ├── hardware_tests.py  <- Hardware test API + dashboard router
 │   └── static/            <- HTML/CSS/JavaScript
 └── hardware_interface/    <- Motor control
+
+tests/hardware/
+├── run_all.py             <- Full suite runner
+├── test_pico_w.py         <- USB/serial Pico W checks
+├── test_rpi5.py           <- RPi5 OS/GPIO/network diagnostics
+├── test_motors.py         <- NEMA23/24 GPIO validation
+└── test_slip_rings.py     <- Slip ring signal integrity
 ```
 
 ---
@@ -193,6 +217,15 @@ src/
 ```bash
 python src/main.py
 # Visit http://localhost:8080
+# Hardware dashboard: http://localhost:8080/api/hardware/tests/dashboard
+```
+
+**Option 1b: Deploy on Raspberry Pi 5**
+```bash
+# On the RPi5:
+bash deploy/rpi5_setup.sh
+# Then run hardware tests:
+python -m tests.hardware.run_all
 ```
 
 **Option 2: Streamlit Cloud (Recommended for quick demo)**
@@ -215,6 +248,9 @@ See [STREAMLIT_DEPLOYMENT.txt](STREAMLIT_DEPLOYMENT.txt) for cloud deployment gu
 | API | Complete |
 | Streamlit App | Complete |
 | Hardware Integration | In Progress (v3.2.0) |
+| Hardware Test Suite | Complete (7 components) |
+| Hardware Test Dashboard | Complete |
+| RPi5 Deployment Script | Complete |
 | Unit Tests | Complete |
 
 ---
@@ -237,6 +273,6 @@ See [STREAMLIT_DEPLOYMENT.txt](STREAMLIT_DEPLOYMENT.txt) for cloud deployment gu
 
 ---
 
-**Last Updated:** January 16, 2026  
-**Version:** 3.1.1  
+**Last Updated:** June 2025  
+**Version:** 3.2.0  
 **License:** MIT
