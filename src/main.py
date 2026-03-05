@@ -347,6 +347,7 @@ class RPMApplication:
             print("=" * 60)
             print("  Local:   http://localhost:8080")
             print("  Network: http://0.0.0.0:8080")
+            print("  HW Tests: http://localhost:8080/api/hardware/tests/dashboard")
             print("  Press Ctrl+C to stop")
             print("=" * 60 + "\n")
             
