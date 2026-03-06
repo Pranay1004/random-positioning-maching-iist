@@ -1,493 +1,683 @@
 """
-Hardware Test Results Web Dashboard
-====================================
-Real-time display of all 7 hardware component tests with live status updates.
-Runs ACTUAL tests — no hardcoded or fake data.
+Hardware Tests Dashboard - FastAPI Router
+==========================================
+Real-time hardware test execution displaying full detailed results.
+Integrates with the complete test framework from tests/hardware/.
 """
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
-import asyncio
 import sys
+import asyncio
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, List, Optional, Any
 
-# Add project root so test imports work
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+# Add paths for imports
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+try:
+    from tests.hardware.run_all import UnifiedDashboard
+    from tests.hardware.test_base import TestStatus
+    HAS_HARDWARE_TESTS = True
+except ImportError as e:
+    print(f"Warning: Could not import hardware tests: {e}")
+    HAS_HARDWARE_TESTS = False
 
 router = APIRouter(prefix="/api/hardware", tags=["hardware"])
 
+# Global dashboard instance (cached results)
+_dashboard: Optional[UnifiedDashboard] = None
+_last_json_result: Optional[Dict[str, Any]] = None
+
+
+async def get_dashboard() -> UnifiedDashboard:
+    """Get or create the dashboard instance."""
+    global _dashboard
+    if _dashboard is None:
+        _dashboard = UnifiedDashboard(dry_run=False, verbose=True)
+    return _dashboard
+
+
+async def run_tests() -> Dict[str, Any]:
+    """Run all hardware tests and return detailed results."""
+    global _last_json_result
+    
+    if not HAS_HARDWARE_TESTS:
+        return {
+            "error": "Hardware tests module not available",
+            "timestamp": None,
+            "components": {},
+            "summary": {
+                "total_components": 0,
+                "connected": 0,
+                "disconnected": 0,
+                "total_tests": 0,
+                "passed": 0,
+                "failed": 0,
+                "warnings": 0,
+                "skipped": 0
+            }
+        }
+    
+    try:
+        dashboard = await get_dashboard()
+        results = await dashboard.run_all_tests()
+        
+        # Get the complete JSON structure from the dashboard
+        json_result = dashboard.to_json()
+        
+        # Add skipped count
+        skipped = sum(
+            1 for results_list in dashboard._all_results.values()
+            for r in results_list if r.status == TestStatus.SKIP
+        )
+        json_result["summary"]["skipped"] = skipped
+        
+        _last_json_result = json_result
+        return json_result
+        
+    except Exception as e:
+        print(f"Error running tests: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "error": str(e),
+            "timestamp": None,
+            "components": {},
+            "summary": {
+                "total_components": 0,
+                "connected": 0,
+                "disconnected": 0,
+                "total_tests": 0,
+                "passed": 0,
+                "failed": 0,
+                "warnings": 0,
+                "skipped": 0
+            }
+        }
+
 
 @router.get("/tests/status")
-async def get_hardware_tests() -> Dict[str, Any]:
+async def get_hardware_test_status():
     """
-    Run ACTUAL hardware tests and return real results.
-    No hardcoded or fake data — every result comes from a real test execution.
+    Run hardware tests and return current status with all details.
     """
-    from tests.hardware.test_base import TestStatus
-    from tests.hardware.test_pico_w import PicoWTest
-    from tests.hardware.test_rpi5 import RPi5DiagnosticsTest
-    from tests.hardware.test_motors import MotorTest
-    from tests.hardware.test_slip_rings import SlipRingTest
-
-    from datetime import datetime
-
-    timestamp = datetime.now().isoformat()
-    components = []
-
-    # 1. RPi Pico W
-    pico = PicoWTest(port=None, verbose=False)
-    pico_results = await pico.run_tests()
-    components.append(_summarize("RPi Pico W", pico_results))
-
-    # 2. RPi 5
-    rpi5 = RPi5DiagnosticsTest(verbose=False)
-    rpi5_results = await rpi5.run_tests()
-    components.append(_summarize("RPi 5 (8GB)", rpi5_results))
-
-    # 3-5. Motors (no dry-run — report truth)
-    for motor_key, label in [("inner", "NEMA 23 — Inner Frame"),
-                             ("outer", "NEMA 23 — Outer Frame"),
-                             ("nema24", "NEMA 24 — Third Axis")]:
-        motor = MotorTest(motor_key=motor_key, serial_port=None,
-                         dry_run=False, verbose=False)
-        motor_results = await motor.run_tests()
-        components.append(_summarize(label, motor_results))
-
-    # 6-7. Slip rings
-    for ring_id, label in [("inner", "Slip Ring — Inner"),
-                           ("outer", "Slip Ring — Outer")]:
-        slip = SlipRingTest(ring_id=ring_id, serial_port=None, verbose=False)
-        slip_results = await slip.run_tests()
-        components.append(_summarize(label, slip_results))
-
-    # Totals
-    total_p = sum(c["passed"] for c in components)
-    total_f = sum(c["failed"] for c in components)
-    total_w = sum(c["warned"] for c in components)
-    total_s = sum(c["skipped"] for c in components)
-
-    return {
-        "timestamp": timestamp,
-        "total_tests": total_p + total_f + total_w + total_s,
-        "passed": total_p,
-        "failed": total_f,
-        "warned": total_w,
-        "skipped": total_s,
-        "components": components,
-    }
+    return await run_tests()
 
 
-def _summarize(name: str, results) -> Dict[str, Any]:
-    """Summarize test results for a component — counts only real statuses."""
-    from tests.hardware.test_base import TestStatus
-
-    passed = sum(1 for r in results if r.status == TestStatus.PASS)
-    failed = sum(1 for r in results if r.status == TestStatus.FAIL)
-    warned = sum(1 for r in results if r.status == TestStatus.WARN)
-    skipped = sum(1 for r in results if r.status == TestStatus.SKIP)
-
-    # Determine connection status honestly
-    if failed > 0:
-        status = "DISCONNECTED"
-    elif passed > 0:
-        # Check if any PASS was a real hardware test (not just software/config)
-        real_hw = sum(
-            1 for r in results
-            if r.status == TestStatus.PASS and
-            not any(kw in r.name.lower() for kw in ["config", "calculat", "protocol", "software", "package", "environment", "readiness"])
-        )
-        status = "CONNECTED" if real_hw > 0 else "NOT VERIFIED"
-    else:
-        status = "NOT TESTED"
-
-    return {
-        "name": name,
-        "status": status,
-        "passed": passed,
-        "failed": failed,
-        "warned": warned,
-        "skipped": skipped,
-        "tests": [
-            {
-                "name": r.name,
-                "status": r.status.value,
-                "message": r.message,
-            }
-            for r in results
-        ],
-    }
-
-
-@router.get("/tests/dashboard")
-async def get_hardware_dashboard() -> HTMLResponse:
+@router.get("/tests/dashboard", response_class=HTMLResponse)
+async def get_hardware_test_dashboard():
     """
-    Return HTML dashboard for hardware test results.
-    Includes live status display, color coding, and detail panels.
+    Serve detailed hardware test dashboard HTML.
+    Shows real test results with actual packet data and communication logs.
+    Nothing passes without real hardware verification.
     """
-    html = """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>RPM Hardware Tests Dashboard</title>
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            
-            body {
-                font-family: 'Roboto Mono', monospace;
-                background: linear-gradient(135deg, #050508 0%, #0a0a12 100%);
-                color: #00e5ff;
-                padding: 20px;
-                min-height: 100vh;
-            }
-            
-            .container {
-                max-width: 1400px;
-                margin: 0 auto;
-            }
-            
-            .header {
-                text-align: center;
-                margin-bottom: 40px;
-                border-bottom: 2px solid #00ff9d;
-                padding-bottom: 20px;
-            }
-            
-            .header h1 {
-                font-size: 2.5em;
-                color: #00ff9d;
-                margin-bottom: 10px;
-                text-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
-            }
-            
-            .header p {
-                color: #888;
-                font-size: 0.9em;
-            }
-            
-            .controls {
-                display: flex;
-                gap: 10px;
-                margin-bottom: 30px;
-                flex-wrap: wrap;
-            }
-            
-            button {
-                padding: 10px 20px;
-                background: #00ff9d;
-                border: none;
-                color: #050508;
-                cursor: pointer;
-                font-weight: bold;
-                border-radius: 3px;
-                font-family: 'Roboto Mono', monospace;
-                transition: all 0.3s;
-            }
-            
-            button:hover {
-                transform: scale(1.05);
-                box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
-            }
-            
-            .status-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 20px;
-                margin-bottom: 40px;
-            }
-            
-            .component-card {
-                background: rgba(0, 0, 0, 0.5);
-                border: 2px solid #00e5ff;
-                border-radius: 5px;
-                padding: 20px;
-                transition: all 0.3s;
-            }
-            
-            .component-card:hover {
-                border-color: #00ff9d;
-                box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
-            }
-            
-            .component-name {
-                font-size: 1.2em;
-                font-weight: bold;
-                color: #00ff9d;
-                margin-bottom: 10px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .status-indicator {
-                width: 12px;
-                height: 12px;
-                border-radius: 50%;
-                display: inline-block;
-            }
-            
-            .status-connected {
-                background: #00ff9d;
-                box-shadow: 0 0 10px #00ff9d;
-            }
-            
-            .status-disconnected {
-                background: #ff4444;
-                box-shadow: 0 0 10px #ff4444;
-            }
-            
-            .status-not-verified {
-                background: #666;
-                box-shadow: 0 0 10px #666;
-            }
-            
-            .test-results {
-                display: flex;
-                gap: 15px;
-                margin: 15px 0;
-                font-size: 0.85em;
-            }
-            
-            .test-stat {
-                padding: 8px 12px;
-                background: rgba(0, 0, 0, 0.7);
-                border-radius: 3px;
-                text-align: center;
-            }
-            
-            .test-stat.pass { color: #00ff9d; }
-            .test-stat.fail { color: #ff4444; }
-            .test-stat.warn { color: #ffaa00; }
-            .test-stat.skip { color: #666; }
-            
-            .overall-summary {
-                background: rgba(0, 0, 0, 0.5);
-                border: 2px solid #00ff9d;
-                border-radius: 5px;
-                padding: 30px;
-                text-align: center;
-            }
-            
-            .summary-stat {
-                display: inline-block;
-                margin: 0 30px;
-                font-size: 1.5em;
-                font-weight: bold;
-            }
-            
-            .summary-stat .label {
-                font-size: 0.7em;
-                color: #888;
-                display: block;
-            }
-            
-            .loading {
-                text-align: center;
-                padding: 40px;
-                color: #00ff9d;
-                font-size: 1.2em;
-            }
-            
-            .spinner {
-                border: 3px solid #00ff9d;
-                border-top: 3px solid transparent;
-                border-radius: 50%;
-                width: 30px;
-                height: 30px;
-                animation: spin 0.8s linear infinite;
-                margin: 0 auto 20px;
-            }
-            
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            
-            .timestamp {
-                color: #666;
-                font-size: 0.85em;
-                margin-top: 20px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>🚀 RPM HARDWARE TESTS</h1>
-                <p>Real-time Hardware Connection Diagnostics</p>
+    import html as html_mod
+    
+    # Run tests to get latest data
+    test_data = await run_tests()
+    
+    summary = test_data.get("summary", {})
+    components = test_data.get("components", {})
+    
+    # Compute total packet stats
+    total_tx = 0
+    total_rx = 0
+    total_err = 0
+    for comp_data in components.values():
+        for test in comp_data.get("tests", []):
+            total_tx += test.get("packets_sent", 0)
+            total_rx += test.get("packets_received", 0)
+            total_err += test.get("packets_failed", 0)
+    
+    # Build summary section HTML
+    summary_html = f"""
+    <div class="test-summary">
+        <h2>Test Summary</h2>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-number passed">{summary.get('passed', 0)}</div>
+                <div class="summary-label">PASSED</div>
             </div>
-            
-            <div class="controls">
-                <button onclick="runTests()">▶ Run Tests</button>
-                <button onclick="autoRefresh()">🔄 Auto Refresh (10s)</button>
-                <button onclick="exportJSON()">📥 Export JSON</button>
-                <span style="color: #888; padding: 10px;">
-                    Last updated: <span id="lastUpdate">--:--:--</span>
-                </span>
+            <div class="summary-item">
+                <div class="summary-number failed">{summary.get('failed', 0)}</div>
+                <div class="summary-label">FAILED</div>
             </div>
-            
-            <div id="content">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    Loading hardware status...
-                </div>
+            <div class="summary-item">
+                <div class="summary-number warned">{summary.get('warnings', 0)}</div>
+                <div class="summary-label">WARNED</div>
             </div>
-            
-            <div class="timestamp">
-                Auto-refresh: <span id="autoRefreshStatus">off</span> 
-                | Page loaded: <span id="pageLoad">--</span>
+            <div class="summary-item">
+                <div class="summary-number skipped">{summary.get('skipped', 0)}</div>
+                <div class="summary-label">SKIPPED</div>
             </div>
         </div>
-        
-        <script>
-            let autoRefreshInterval = null;
-            let testData = null;
-            
-            function formatTime(dt) {
-                if (!dt) return '--:--:--';
-                return new Date(dt).toLocaleTimeString('en-GB');
-            }
-            
-            async function runTests() {
-                const content = document.getElementById('content');
-                content.innerHTML = '<div class="loading"><div class="spinner"></div>Running tests...</div>';
-                
-                try {
-                    const response = await fetch('/api/hardware/tests/status');
-                    testData = await response.json();
-                    renderResults(testData);
-                    document.getElementById('lastUpdate').textContent = formatTime(new Date());
-                    document.getElementById('pageLoad').textContent = formatTime(new Date());
-                } catch (e) {
-                    content.innerHTML = '<div class="loading" style="color: #ff4444;">❌ Failed to fetch test results: ' + e.message + '</div>';
-                }
-            }
-            
-            function renderResults(data) {
-                if (!data) return;
-                
-                const content = document.getElementById('content');
-                
-                if (data.components && data.components.length > 0) {
-                    // Component grid
-                    let html = '<div class="status-grid">';
-                    
-                    for (const comp of data.components) {
-                        const statusClass = comp.status === 'CONNECTED' ? 'status-connected' : 
-                                          comp.status === 'DISCONNECTED' ? 'status-disconnected' :
-                                          comp.status === 'NOT VERIFIED' ? 'status-not-verified' : 'status-warning';
-                        
-                        html += `
-                            <div class="component-card">
-                                <div class="component-name">
-                                    <span class="status-indicator ${statusClass}"></span>
-                                    ${comp.name}
-                                </div>
-                                <div style="color: ${comp.status === 'CONNECTED' ? '#00ff9d' : comp.status === 'DISCONNECTED' ? '#ff4444' : '#888'}; font-size: 0.85em; margin-bottom: 10px; font-weight: bold;">${comp.status}</div>
-                                <div class="test-results">
-                                    <div class="test-stat pass">&check; ${comp.passed || 0}</div>
-                                    <div class="test-stat fail">&cross; ${comp.failed || 0}</div>
-                                    <div class="test-stat warn">&excl; ${comp.warned || 0}</div>
-                                    <div class="test-stat skip">&oslash; ${comp.skipped || 0}</div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    html += '</div>';
-                    
-                    // Detailed test results per component
-                    for (const comp of data.components) {
-                        if (comp.tests && comp.tests.length > 0) {
-                            html += '<div style="margin-bottom: 20px;">';
-                            html += '<h3 style="color: #00e5ff; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px;">' + comp.name + '</h3>';
-                            for (const test of comp.tests) {
-                                const color = test.status === 'PASS' ? '#00ff9d' : 
-                                             test.status === 'FAIL' ? '#ff4444' : 
-                                             test.status === 'WARN' ? '#ffaa00' : '#666';
-                                const icon = test.status === 'PASS' ? '&check;' : 
-                                            test.status === 'FAIL' ? '&cross;' : 
-                                            test.status === 'WARN' ? '!' : '&oslash;';
-                                html += '<div style="padding: 4px 10px; font-size: 0.85em;">';
-                                html += '<span style="color: ' + color + '; font-weight: bold; width: 60px; display: inline-block;">[' + test.status + ']</span> ';
-                                html += '<span style="color: #ccc;">' + test.name + '</span>';
-                                if (test.message) {
-                                    html += '<div style="color: #888; padding-left: 70px; font-size: 0.9em;">' + test.message + '</div>';
-                                }
-                                html += '</div>';
-                            }
-                            html += '</div>';
-                        }
-                    }
-                    
-                    // Overall summary
-                    html += `
-                        <div class="overall-summary">
-                            <h2 style="margin-bottom: 20px; color: #00ff9d;">Test Summary</h2>
-                            <div class="summary-stat" style="color: #00ff9d;">
-                                ${data.passed || 0}
-                                <span class="label">PASSED</span>
-                            </div>
-                            <div class="summary-stat" style="color: #ff4444;">
-                                ${data.failed || 0}
-                                <span class="label">FAILED</span>
-                            </div>
-                            <div class="summary-stat" style="color: #ffaa00;">
-                                ${data.warned || 0}
-                                <span class="label">WARNED</span>
-                            </div>
-                            <div class="summary-stat" style="color: #666;">
-                                ${data.skipped || 0}
-                                <span class="label">SKIPPED</span>
-                            </div>
-                            <div style="margin-top: 20px; color: #888;">
-                                Total: ${data.total_tests || 0} tests
-                            </div>
-                        </div>
-                    `;
-                    
-                    content.innerHTML = html;
-                } else {
-                    content.innerHTML = '<div class="loading">No test data available</div>';
-                }
-            }
-            
-            function autoRefresh() {
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
-                    autoRefreshInterval = null;
-                    document.getElementById('autoRefreshStatus').textContent = 'off';
-                } else {
-                    document.getElementById('autoRefreshStatus').textContent = '10s';
-                    runTests();
-                    autoRefreshInterval = setInterval(runTests, 10000);
-                }
-            }
-            
-            function exportJSON() {
-                if (!testData) {
-                    alert('Run tests first');
-                    return;
-                }
-                const json = JSON.stringify(testData, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `hardware_tests_${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-            }
-            
-            // Load on page load
-            document.addEventListener('DOMContentLoaded', () => {
-                runTests();
-            });
-        </script>
-    </body>
-    </html>
+        <div class="summary-total">Total: {summary.get('total_tests', 0)} tests</div>
+    </div>
+    
+    <div class="packet-summary">
+        <h2>Data Transfer Summary</h2>
+        <div class="packet-grid">
+            <div class="packet-item tx">
+                <div class="packet-number">{total_tx}</div>
+                <div class="packet-label">TX PACKETS SENT</div>
+            </div>
+            <div class="packet-item rx">
+                <div class="packet-number">{total_rx}</div>
+                <div class="packet-label">RX PACKETS RECEIVED</div>
+            </div>
+            <div class="packet-item err">
+                <div class="packet-number">{total_err}</div>
+                <div class="packet-label">ERRORS</div>
+            </div>
+        </div>
+        <div class="packet-note">
+            {"No packets were transmitted — no hardware is connected." if total_tx == 0 else
+             f"Success rate: {((total_tx - total_err) / total_tx * 100):.1f}%" if total_tx > 0 else ""}
+        </div>
+    </div>
     """
     
-    return HTMLResponse(content=html)
+    # Build component cards HTML with packet details
+    components_html = ""
+    for comp_key, comp_data in components.items():
+        tests = comp_data.get("tests", [])
+        is_connected = comp_data.get("connected", False)
+        status_text = "CONNECTED" if is_connected else "DISCONNECTED"
+        status_color = "#00ff9d" if is_connected else "#ff6b6b"
+        
+        # Per-component TX/RX
+        comp_tx = sum(t.get("packets_sent", 0) for t in tests)
+        comp_rx = sum(t.get("packets_received", 0) for t in tests)
+        comp_err = sum(t.get("packets_failed", 0) for t in tests)
+        
+        # Build test results table rows
+        test_rows = ""
+        for test in tests:
+            test_status = test["status"]
+            status_colors = {
+                "PASS": "#00ff9d",
+                "FAIL": "#ff6b6b",
+                "SKIP": "#ffd60a",
+                "WARN": "#ff8c00",
+                "PENDING": "#888888"
+            }
+            badge_color = status_colors.get(test_status, "#888888")
+            
+            hex_color = badge_color.lstrip('#')
+            r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+            
+            # Escape message for HTML
+            msg = html_mod.escape(test.get('message', ''))
+            
+            # Packet info column
+            pkt_sent = test.get('packets_sent', 0)
+            pkt_recv = test.get('packets_received', 0)
+            pkt_fail = test.get('packets_failed', 0)
+            
+            if pkt_sent > 0 or pkt_recv > 0:
+                pkt_html = (f'<span class="pkt-tx">TX:{pkt_sent}</span> '
+                            f'<span class="pkt-rx">RX:{pkt_recv}</span> '
+                            f'<span class="pkt-err">ERR:{pkt_fail}</span>')
+            else:
+                pkt_html = '<span class="no-packets">—</span>'
+            
+            # Hex dump / data column from test.data
+            data_details = ""
+            test_extra_data = test.get("data", {})
+            if test_extra_data:
+                # Show packet hex if available
+                if "packet_hex" in test_extra_data:
+                    hex_str = test_extra_data["packet_hex"]
+                    # Format as byte groups
+                    formatted_hex = " ".join(hex_str[i:i+2] for i in range(0, min(len(hex_str), 64), 2))
+                    if len(hex_str) > 64:
+                        formatted_hex += "..."
+                    data_details = f'<div class="hex-dump">{formatted_hex}</div>'
+                else:
+                    # Show other data keys as key=value pairs
+                    items = []
+                    for k, v in test_extra_data.items():
+                        if isinstance(v, (dict, list)):
+                            continue
+                        items.append(f"{k}={v}")
+                    if items:
+                        data_details = f'<div class="test-data">{" | ".join(items[:4])}</div>'
+            
+            test_rows += f"""
+            <tr>
+                <td class="test-name">{html_mod.escape(test['name'])}</td>
+                <td>
+                    <span class="test-badge" style="background: rgba({r},{g},{b},0.2); color: {badge_color}; border: 1px solid {badge_color};">
+                        {test_status}
+                    </span>
+                </td>
+                <td class="test-message">{msg}{data_details}</td>
+                <td class="test-packets">{pkt_html}</td>
+                <td class="test-duration">{test.get('duration_ms', 0):.1f}ms</td>
+            </tr>
+            """
+        
+        hex_sc = status_color.lstrip('#')
+        sr, sg, sb = int(hex_sc[0:2], 16), int(hex_sc[2:4], 16), int(hex_sc[4:6], 16)
+        
+        components_html += f"""
+        <div class="component-card">
+            <div class="component-header">
+                <div class="component-title">
+                    <h3>{html_mod.escape(comp_data['name'])}</h3>
+                    <span class="component-type">{comp_data['connection']}</span>
+                </div>
+                <div class="status-badge" style="background: rgba({sr},{sg},{sb},0.2); color: {status_color}; border: 1px solid {status_color};">
+                    {status_text}
+                </div>
+            </div>
+            <div class="component-info">
+                <div>Port: <strong>{html_mod.escape(str(comp_data.get('port', 'N/A')))}</strong></div>
+                <div>TX: <strong>{comp_tx}</strong> | RX: <strong>{comp_rx}</strong> | ERR: <strong>{comp_err}</strong></div>
+                {f"<div>Latency: <strong>{comp_data.get('latency_ms')} ms</strong></div>" if comp_data.get('latency_ms') else ""}
+            </div>
+            <table class="test-results-table">
+                <thead>
+                    <tr>
+                        <th>TEST NAME</th>
+                        <th>STATUS</th>
+                        <th>MESSAGE / DATA</th>
+                        <th>PACKETS</th>
+                        <th>DURATION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {test_rows}
+                </tbody>
+            </table>
+        </div>
+        """
+    
+    css = """
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: linear-gradient(135deg, #050508 0%, #0a0a14 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(0, 229, 255, 0.1);
+            border: 2px solid #00e5ff;
+            color: #00e5ff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            font-size: 0.85em;
+        }
+        
+        .back-btn:hover {
+            background: #00e5ff;
+            color: #050508;
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00e5ff;
+            font-size: 2.2em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .test-summary, .packet-summary {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(0, 229, 255, 0.4);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .test-summary h2, .packet-summary h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00e5ff;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+        }
+        
+        .summary-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 5px;
+        }
+        
+        .summary-number.passed { color: #00ff9d; }
+        .summary-number.failed { color: #ff6b6b; }
+        .summary-number.warned { color: #ff8c00; }
+        .summary-number.skipped { color: #888; }
+        
+        .summary-label {
+            color: #888;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+        }
+        
+        .summary-total {
+            text-align: center;
+            color: #888;
+            font-size: 0.85em;
+            padding-top: 12px;
+            border-top: 1px solid rgba(0, 229, 255, 0.2);
+        }
+        
+        .packet-summary {
+            border-color: rgba(255, 107, 107, 0.4);
+        }
+        
+        .packet-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .packet-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .packet-number {
+            font-size: 2.2em;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .packet-item.tx .packet-number { color: #00e5ff; }
+        .packet-item.rx .packet-number { color: #00ff9d; }
+        .packet-item.err .packet-number { color: #ff6b6b; }
+        
+        .packet-label {
+            color: #888;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        
+        .packet-note {
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 0.85em;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 107, 107, 0.2);
+            font-weight: 600;
+        }
+        
+        .components-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        .component-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(0, 229, 255, 0.3);
+            border-radius: 8px;
+            padding: 18px;
+            transition: all 0.3s;
+        }
+        
+        .component-card:hover {
+            border-color: #00e5ff;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+        }
+        
+        .component-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+        }
+        
+        .component-title h3 {
+            color: #00e5ff;
+            font-size: 1.05em;
+            margin-bottom: 3px;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .component-type {
+            color: #666;
+            font-size: 0.8em;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 0.72em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .component-info {
+            color: #aaa;
+            font-size: 0.82em;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .test-results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        
+        .test-results-table thead {
+            background: rgba(0, 229, 255, 0.1);
+            border-bottom: 2px solid rgba(0, 229, 255, 0.3);
+        }
+        
+        .test-results-table th {
+            padding: 8px 10px;
+            text-align: left;
+            color: #00e5ff;
+            font-weight: 700;
+            font-size: 0.72em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .test-results-table td {
+            padding: 7px 10px;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.08);
+            font-size: 0.82em;
+            vertical-align: top;
+        }
+        
+        .test-name {
+            white-space: nowrap;
+        }
+        
+        .test-badge {
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 0.72em;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        
+        .test-message {
+            color: #aaa;
+            max-width: 500px;
+        }
+        
+        .test-packets {
+            white-space: nowrap;
+            font-size: 0.78em;
+        }
+        
+        .pkt-tx { color: #00e5ff; margin-right: 6px; }
+        .pkt-rx { color: #00ff9d; margin-right: 6px; }
+        .pkt-err { color: #ff6b6b; }
+        .no-packets { color: #444; }
+        
+        .hex-dump {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.78em;
+            color: #00e5ff;
+            background: rgba(0, 229, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.15);
+            border-radius: 3px;
+            padding: 4px 8px;
+            margin-top: 4px;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        
+        .test-data {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .test-duration {
+            color: #555;
+            text-align: right;
+            white-space: nowrap;
+        }
+        
+        .refresh-btn {
+            display: block;
+            margin: 30px auto;
+            padding: 12px 40px;
+            background: rgba(0, 229, 255, 0.1);
+            border: 2px solid #00e5ff;
+            color: #00e5ff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            font-family: 'Roboto Mono', monospace;
+            text-transform: uppercase;
+        }
+        
+        .refresh-btn:hover {
+            background: #00e5ff;
+            color: #050508;
+        }
+        
+        .footer {
+            text-align: center;
+            color: #555;
+            font-size: 0.75em;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0, 229, 255, 0.15);
+        }
+        
+        .hw-notice {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 6px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            color: #ff6b6b;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+        
+        .hw-notice strong {
+            color: #ff8c8c;
+        }
+    """
+
+    html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardware Tests Dashboard - RPM Digital Twin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>{css}</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="back-btn">&#8592; BACK TO DASHBOARD</a>
+            <h1>HARDWARE TESTS DASHBOARD</h1>
+            <p class="subtitle">Real hardware verification &mdash; no simulated results</p>
+        </div>
+        
+        {"<div class='hw-notice'><strong>NO HARDWARE DETECTED:</strong> All tests that require physical hardware connections (GPIO, Serial, I2C) are reporting SKIP or FAIL. Connect the actual RPM hardware (RPi Pico W, NEMA motors, slip rings) and re-run to see PASS results with real packet data.</div>" if summary.get('passed', 0) <= 3 and total_tx == 0 else ""}
+        
+        {summary_html}
+        
+        <div class="components-grid">
+            {components_html}
+        </div>
+        
+        <button class="refresh-btn" onclick="location.reload()">REFRESH TESTS</button>
+        
+        <div class="footer">
+            Last run: {test_data.get('timestamp', 'Never')} | 
+            Only tests with verified hardware communication report PASS
+        </div>
+    </div>
+</body>
+</html>
+    """
+    return html
+
+

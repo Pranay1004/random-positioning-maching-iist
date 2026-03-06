@@ -110,9 +110,9 @@ class RPi5DiagnosticsTest(HardwareTestBase):
                     t.status = TestStatus.WARN
                     t.message = f"Unknown model: {model}"
             else:
-                t.status = TestStatus.WARN
-                t.message = (f"Not running on RPi ({uname.system} {uname.machine}). "
-                             f"Remote diagnostics only.")
+                t.status = TestStatus.SKIP
+                t.message = (f"Not running on RPi ({uname.system} {uname.machine}) — "
+                             f"cannot verify RPi 5 hardware")
         
         # Test 2: CPU info
         with self.timed_test("CPU Information") as t:
@@ -133,7 +133,7 @@ class RPi5DiagnosticsTest(HardwareTestBase):
                 t.message = f"{cpu_name} | {cores} cores | {freq_mhz}MHz"
             else:
                 t.status = TestStatus.SKIP
-                t.message = f"Host CPU: {platform.processor()} | {os.cpu_count()} cores — NOT RPi 5"
+                t.message = f"Not on RPi — host CPU: {platform.processor()} ({os.cpu_count()} cores)"
                 t.data["cpu"] = platform.processor()
                 t.data["cores"] = os.cpu_count()
         
@@ -170,8 +170,8 @@ class RPi5DiagnosticsTest(HardwareTestBase):
                         mem_gb = int(output) / (1024**3)
                     else:
                         mem_gb = 0
-                t.status = TestStatus.PASS if mem_gb > 0 else TestStatus.WARN
-                t.message = f"{mem_gb:.1f} GB RAM (host machine — NOT RPi 5)" if mem_gb > 0 else "Could not determine memory"
+                t.status = TestStatus.SKIP if mem_gb > 0 else TestStatus.WARN
+                t.message = f"Not on RPi — host has {mem_gb:.1f} GB RAM" if mem_gb > 0 else "Could not determine memory"
                 t.data["memory_gb"] = round(mem_gb, 2)
         
         # Test 4: Storage health
@@ -185,13 +185,17 @@ class RPi5DiagnosticsTest(HardwareTestBase):
             t.data["free_gb"] = round(free_gb, 2)
             t.data["used_pct"] = round(used_pct, 1)
             
-            if free_gb > 2.0:
-                t.status = TestStatus.PASS
-            elif free_gb > 0.5:
-                t.status = TestStatus.WARN
+            if is_rpi:
+                if free_gb > 2.0:
+                    t.status = TestStatus.PASS
+                elif free_gb > 0.5:
+                    t.status = TestStatus.WARN
+                else:
+                    t.status = TestStatus.FAIL
+                t.message = f"Total: {total_gb:.1f}GB  Free: {free_gb:.1f}GB  Used: {used_pct:.0f}%"
             else:
-                t.status = TestStatus.FAIL
-            t.message = f"Total: {total_gb:.1f}GB  Free: {free_gb:.1f}GB  Used: {used_pct:.0f}%"
+                t.status = TestStatus.SKIP
+                t.message = f"Not on RPi — host disk: {total_gb:.1f}GB total, {free_gb:.1f}GB free"
         
         # Test 5: Temperature
         with self.timed_test("CPU Temperature") as t:
@@ -264,8 +268,8 @@ class RPi5DiagnosticsTest(HardwareTestBase):
                     t.status = TestStatus.WARN
                     t.message = f"{hostname} | No network interfaces"
             else:
-                t.status = TestStatus.PASS
-                t.message = f"{hostname} | {primary_ip}"
+                t.status = TestStatus.SKIP
+                t.message = f"Not on RPi — host: {hostname} | {primary_ip}"
                 t.data["hostname"] = hostname
                 t.data["primary_ip"] = primary_ip
         
@@ -347,7 +351,7 @@ class RPi5DiagnosticsTest(HardwareTestBase):
                     t.message = " | ".join(pins_info)
                 else:
                     t.status = TestStatus.SKIP
-                    t.message = "Config loaded: " + " | ".join(pins_info) + " — NOT verified (no GPIO)"
+                    t.message = "Config loaded: " + " | ".join(pins_info) + " (not verified — no GPIO)"
                 
                 t.data["pins"] = pins_info
             else:
@@ -399,12 +403,12 @@ class RPi5DiagnosticsTest(HardwareTestBase):
                 
                 if rc == 0 and usb_list:
                     lines = [l.strip() for l in usb_list.split('\n') if l.strip()]
-                    t.status = TestStatus.PASS
-                    t.message = f"{len(lines)} USB entries detected"
+                    t.status = TestStatus.SKIP
+                    t.message = f"Host USB (not RPi): {len(lines)} entries detected"
                     t.data["devices"] = lines[:10]
                 else:
                     t.status = TestStatus.SKIP
-                    t.message = "USB enumeration not available"
+                    t.message = "USB enumeration returned no data"
             else:
                 t.status = TestStatus.SKIP
                 t.message = "USB listing not available"

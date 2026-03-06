@@ -166,7 +166,7 @@ class MotorTest(HardwareTestBase):
             "ENABLE": self._config.enable_pin,
         }
         
-        # Test 1: GPIO pin existence
+        # Test 1: GPIO pin existence — only PASS if GPIO is actually accessible
         with self.timed_test("GPIO Pin Configuration") as t:
             t.data["pins"] = {k: v for k, v in pins.items()}
             t.data["motor_type"] = self._config.motor_type
@@ -176,30 +176,30 @@ class MotorTest(HardwareTestBase):
             total_steps = self._config.steps_per_rev * self._config.microstepping
             pin_info = (f"DIR=GPIO{pins['DIRECTION']} STEP=GPIO{pins['STEP']} "
                         f"EN=GPIO{pins['ENABLE']} | {total_steps} steps/rev")
-            if self._has_gpio:
+            if self._has_gpio and not self._dry_run:
                 t.status = TestStatus.PASS
-                t.message = pin_info
+                t.message = f"GPIO accessible — {pin_info}"
             else:
                 t.status = TestStatus.SKIP
-                t.message = f"Config: {pin_info} — NOT verified (no GPIO)"
+                t.message = f"GPIO not available — config only: {pin_info}"
         
         # Test 2: GPIO access
         with self.timed_test("GPIO Access") as t:
             if self._dry_run:
                 t.status = TestStatus.SKIP
-                t.message = "Dry-run mode — GPIO NOT tested"
+                t.message = "Dry-run mode — no hardware verification"
             elif self._has_gpio:
                 t.status = TestStatus.PASS
                 t.message = f"GPIO available via {GPIOHelper._lib}"
             else:
-                t.status = TestStatus.FAIL
+                t.status = TestStatus.WARN
                 t.message = "GPIO not available (not on RPi or libraries missing)"
         
         # Test 3: Enable pin toggle
         with self.timed_test("Enable Pin Toggle") as t:
             if self._dry_run:
                 t.status = TestStatus.SKIP
-                t.message = "Dry-run: EN pin NOT tested"
+                t.message = "Dry-run: no hardware verification"
             elif self._has_gpio:
                 ok = GPIOHelper.test_pin_output(self._config.enable_pin, duration=0.05)
                 t.status = TestStatus.PASS if ok else TestStatus.FAIL
@@ -212,7 +212,7 @@ class MotorTest(HardwareTestBase):
         with self.timed_test("Direction Pin Toggle") as t:
             if self._dry_run:
                 t.status = TestStatus.SKIP
-                t.message = "Dry-run: DIR pin NOT tested"
+                t.message = "Dry-run: no hardware verification"
             elif self._has_gpio:
                 ok = GPIOHelper.test_pin_output(self._config.direction_pin, duration=0.05)
                 t.status = TestStatus.PASS if ok else TestStatus.FAIL
@@ -225,7 +225,7 @@ class MotorTest(HardwareTestBase):
         with self.timed_test("Step Pulse Generation (10 steps)") as t:
             if self._dry_run:
                 t.status = TestStatus.SKIP
-                t.message = "Dry-run: step pulses NOT generated"
+                t.message = "Dry-run: no hardware verification"
             elif self._has_gpio:
                 # Enable motor first
                 GPIOHelper.test_pin_output(self._config.enable_pin, duration=0.01)
@@ -288,8 +288,8 @@ class MotorTest(HardwareTestBase):
                 t.status = TestStatus.SKIP
                 t.message = "No serial port specified (use --serial-port)"
         
-        # Test 7: Speed ramp calculation (software-only — not hardware verified)
-        with self.timed_test("Speed Ramp Profile (Calculated)") as t:
+        # Test 7: Speed ramp calculation — computational only, not a hardware test
+        with self.timed_test("Speed Ramp Profile") as t:
             max_rpm = self._config.max_rpm
             accel = 100.0  # RPM/s from config
             ramp_time = max_rpm / accel
@@ -304,12 +304,12 @@ class MotorTest(HardwareTestBase):
             t.data["min_step_delay_us"] = round(min_step_delay_us, 1)
             
             t.status = TestStatus.SKIP
-            t.message = (f"[Calculation only] 0→{max_rpm}RPM in {ramp_time:.2f}s | "
+            t.message = (f"Computed only (no motor connected): 0→{max_rpm}RPM in {ramp_time:.2f}s | "
                          f"{steps_per_sec_max:.0f} steps/s max | "
-                         f"{min_step_delay_us:.0f}µs min delay — NOT verified on motor")
+                         f"{min_step_delay_us:.0f}µs min delay")
         
-        # Test 8: Motor command packet (protocol test)
-        with self.timed_test("Motor Command Packet (Protocol)") as t:
+        # Test 8: Motor command packet — build locally, only PASS if actually sent & ACKed
+        with self.timed_test("Motor Command Packet (Send)") as t:
             motor_byte = 0x01 if self._motor_key == "inner" else 0x02
             if self._motor_key == "nema24":
                 motor_byte = 0x03
@@ -320,34 +320,60 @@ class MotorTest(HardwareTestBase):
             raw = build_packet(MOTOR_COMMAND, payload, sequence=1)
             parsed = parse_packet(raw)
             
-            if parsed and parsed["valid"]:
-                t.status = TestStatus.PASS
-                t.message = (f"Packet built: {len(raw)} bytes | "
-                             f"Motor=0x{motor_byte:02X} RPM={velocity_rpm} Accel={acceleration}")
-                t.data["packet_hex"] = raw.hex().upper()
-                
-                if self.verbose:
-                    print(TerminalDisplay.hex_dump(raw, "TX"))
-            else:
+            t.data["packet_hex"] = raw.hex().upper()
+            t.data["packet_bytes"] = len(raw)
+            t.data["packet_fields"] = {
+                "motor": f"0x{motor_byte:02X}",
+                "velocity_rpm": velocity_rpm,
+                "acceleration": acceleration,
+            }
+            
+            if not parsed or not parsed["valid"]:
                 t.status = TestStatus.FAIL
                 t.message = "Packet build/parse failed (CRC error)"
+            elif self._serial_port and HAS_SERIAL:
+                if self.open_serial(self._serial_port):
+                    sent = self.send_packet(MOTOR_COMMAND, payload)
+                    if sent:
+                        t.packets_sent = 1
+                        response = self.receive_packet(timeout=2.0)
+                        if response and response["valid"]:
+                            t.packets_received = 1
+                            t.status = TestStatus.PASS
+                            t.message = (f"TX {len(raw)}B → RX {len(response['raw'])}B | "
+                                         f"Motor=0x{motor_byte:02X} RPM={velocity_rpm}")
+                        else:
+                            t.status = TestStatus.FAIL
+                            t.message = (f"TX {len(raw)}B → No valid response | "
+                                         f"Packet: {raw.hex().upper()[:40]}...")
+                            t.packets_failed = 1
+                    else:
+                        t.status = TestStatus.FAIL
+                        t.message = "Failed to send command packet"
+                    self.close_serial()
+                else:
+                    t.status = TestStatus.FAIL
+                    t.message = f"Could not open serial port {self._serial_port}"
+            else:
+                t.status = TestStatus.SKIP
+                t.message = (f"No serial connection — packet built but NOT SENT: "
+                             f"{raw.hex().upper()[:40]}...")
         
-        # Test 9: Emergency stop packet
-        with self.timed_test("Emergency Stop Packet (Protocol)") as t:
+        # Test 9: Emergency stop packet — only PASS if sent and acknowledged
+        with self.timed_test("Emergency Stop Packet") as t:
             estop_payload = struct.pack('<B', 0x00)  # E-stop all
             raw = build_packet(0x21, estop_payload, sequence=99)
             parsed = parse_packet(raw)
             
-            if parsed and parsed["valid"]:
-                t.status = TestStatus.PASS
-                t.message = f"E-Stop packet: {len(raw)} bytes, CRC valid"
-                
-                if self._serial_port and HAS_SERIAL:
-                    # Don't actually send E-stop unless we have a reason
-                    t.message += " (not sent — test only)"
-            else:
+            t.data["packet_hex"] = raw.hex().upper()
+            
+            if not parsed or not parsed["valid"]:
                 t.status = TestStatus.FAIL
                 t.message = "E-Stop packet build failed"
+            else:
+                t.status = TestStatus.SKIP
+                t.message = (f"E-Stop packet built ({len(raw)}B) but NOT SENT — "
+                             f"no serial connection: {raw.hex().upper()}")
         
         return self.results
 

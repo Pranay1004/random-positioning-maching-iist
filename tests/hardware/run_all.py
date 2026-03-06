@@ -40,7 +40,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from tests.hardware.test_base import (
@@ -174,7 +173,7 @@ class UnifiedDashboard:
         return self._all_results
     
     def _update_status(self, key: str, results: List[TestResult], port: str) -> None:
-        """Update component status from test results. Only mark CONNECTED when hardware is actually verified."""
+        """Update component status from test results."""
         comp = self.components[key]
         comp.port = port
         comp.test_results = results
@@ -186,28 +185,20 @@ class UnifiedDashboard:
         warns = sum(1 for r in results if r.status == TestStatus.WARN)
         total = len(results)
         
-        # Only mark CONNECTED if there are actual hardware-verified PASS results
-        # If ALL non-skip tests passed AND at least one was a real hardware test
-        if fails > 0:
+        # Only mark connected if passes outnumber skips (most tests verified)
+        # A component with 3 passes and 11 skips is NOT verified
+        if fails == 0 and passes > 0 and passes > skips:
+            comp.is_connected = True
+            comp.status_msg = f"{passes} passed, {skips} skipped"
+        elif fails > 0:
             comp.is_connected = False
-            comp.status_msg = f"{fails} tests FAILED"
-        elif passes > 0 and skips < total:
-            # Some tests passed — but were they real hardware tests?
-            # Check if any PASS test doesn't have "Config" or "Calculation" or "Software" in name
-            real_hw_passes = sum(
-                1 for r in results 
-                if r.status == TestStatus.PASS and
-                not any(kw in r.name.lower() for kw in ["config", "calculat", "protocol", "software"])
-            )
-            if real_hw_passes > 0:
-                comp.is_connected = True
-                comp.status_msg = f"{passes} passed ({real_hw_passes} hardware-verified)"
-            else:
-                comp.is_connected = False
-                comp.status_msg = f"{passes} software-only, {skips} skipped — hardware NOT verified"
+            comp.status_msg = f"{fails} failed, {passes} passed, {skips} skipped"
+        elif passes > 0:
+            comp.is_connected = False
+            comp.status_msg = f"Mostly unverified: {passes} passed, {skips} skipped"
         else:
             comp.is_connected = False
-            comp.status_msg = "All tests skipped — hardware NOT available"
+            comp.status_msg = "All tests skipped"
         
         # Extract latency if available
         for r in results:

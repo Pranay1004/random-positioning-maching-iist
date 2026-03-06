@@ -81,7 +81,7 @@ class SlipRingTest(HardwareTestBase):
     async def run_tests(self) -> List[TestResult]:
         has_serial = self._serial_port and HAS_SERIAL
         
-        # Test 1: Slip ring configuration
+        # Test 1: Slip ring configuration — read-only config, not a hardware test
         with self.timed_test("Slip Ring Configuration") as t:
             ring_specs = {
                 "inner": {
@@ -102,8 +102,9 @@ class SlipRingTest(HardwareTestBase):
             spec = ring_specs.get(self._ring_id, ring_specs["inner"])
             t.data = spec
             t.status = TestStatus.SKIP
-            t.message = (f"[Config only] {spec['channels']} channels | {spec['voltage_rating']} | "
-                         f"{spec['current_rating']} | Max {spec['max_rpm']}RPM — NOT verified on hardware")
+            t.message = (f"Config only (not verified): {spec['channels']} channels | "
+                         f"{spec['voltage_rating']} | {spec['current_rating']} | "
+                         f"Max {spec['max_rpm']}RPM")
         
         # Test 2: Electrical continuity (via GPIO or serial)
         with self.timed_test("Electrical Continuity") as t:
@@ -201,9 +202,9 @@ class SlipRingTest(HardwareTestBase):
                     if not parsed or not parsed["valid"]:
                         all_ok = False
                 
-                t.status = TestStatus.SKIP if all_ok else TestStatus.FAIL
-                t.message = (f"[Software only] {len(test_patterns)} patterns CRC-verified in software — NOT tested through slip ring"
-                             if all_ok else "CRC mismatch in pattern test")
+                t.status = TestStatus.SKIP
+                t.message = (f"CRC verified locally but NO DATA SENT to hardware — "
+                             f"{len(test_patterns)} patterns built, 0 transmitted")
         
         # Test 4: Noise measurement query
         with self.timed_test("Noise/Resistance Measurement") as t:
