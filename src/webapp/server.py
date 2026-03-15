@@ -33,10 +33,11 @@ from pydantic import BaseModel
 
 # Import hardware tests router
 try:
-    from webapp.hardware_tests import router as hardware_tests_router
-except ImportError:
-    hardware_tests_router = None
-    logger.warning("Hardware tests router not available")
+    from webapp.hardware_tests import router as hardware_router
+    HAS_HARDWARE_TESTS = True
+except ImportError as e:
+    logger.warning(f"Could not import hardware tests router: {e}")
+    HAS_HARDWARE_TESTS = False
 
 
 # =============================================================================
@@ -51,10 +52,10 @@ EARTH_GRAVITY = 9.80665  # m/s²
 
 class FrameDimensions(BaseModel):
     """Rectangular frame dimensions."""
-    inner_length: float = 0.80  # m (80 cm - matches frontend default)
-    inner_breadth: float = 0.80  # m (80 cm)
-    outer_length: float = 1.50  # m (150 cm)
-    outer_breadth: float = 1.50  # m (150 cm)
+    inner_length: float = 0.30  # m
+    inner_breadth: float = 0.20  # m
+    outer_length: float = 0.50  # m
+    outer_breadth: float = 0.35  # m
 
 
 class AxisInclination(BaseModel):
@@ -249,11 +250,11 @@ class MicrogravitySimulator:
         # Running sum for efficient averaging
         self.gravity_sum = np.zeros(3)
         
-        # Frame dimensions (rectangular) - match frontend defaults
-        self.inner_length = 0.80   # 80 cm
-        self.inner_breadth = 0.80  # 80 cm
-        self.outer_length = 1.50   # 150 cm
-        self.outer_breadth = 1.50  # 150 cm
+        # Frame dimensions (rectangular)
+        self.inner_length = 0.30
+        self.inner_breadth = 0.20
+        self.outer_length = 0.50
+        self.outer_breadth = 0.35
         
         # Min/Max tracking for taSMG
         self.min_g = float('inf')
@@ -811,10 +812,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register hardware tests router
-if hardware_tests_router:
-    app.include_router(hardware_tests_router)
-    logger.info("Hardware tests router registered at /api/hardware/")
+# Include hardware tests router
+if HAS_HARDWARE_TESTS:
+    app.include_router(hardware_router)
+    logger.info("Hardware tests API mounted at /api/hardware")
 
 
 # =============================================================================
@@ -921,10 +922,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     )
                 elif action == "frame_dimensions":
                     engine.set_frame_dimensions(
-                        cmd.get("inner_length", 0.80),
-                        cmd.get("inner_breadth", 0.80),
-                        cmd.get("outer_length", 1.50),
-                        cmd.get("outer_breadth", 1.50)
+                        cmd.get("inner_length", 0.30),
+                        cmd.get("inner_breadth", 0.20),
+                        cmd.get("outer_length", 0.50),
+                        cmd.get("outer_breadth", 0.35)
                     )
                 elif action == "axis_inclination":
                     engine.set_axis_inclination(
